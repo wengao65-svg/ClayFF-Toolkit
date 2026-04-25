@@ -1,0 +1,142 @@
+"""Unified command line interface for ClayFF-Toolkit."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+from .assignment.service import assign_file, default_clayff_path
+from .pipeline import ToolkitPipeline
+from .substitution.engine import main as substitution_main
+from .validation.charges import calculate_net_charge
+from .visualization.app import launch_visualizer
+
+
+def _resolve_output_path(input_path: Path, output_path: Path) -> Path:
+    if output_path.exists() and output_path.is_dir():
+        return output_path / f"{input_path.stem}.data"
+    if output_path.suffix.lower() == ".data":
+        return output_path
+    if not output_path.exists() and output_path.suffix == "":
+        output_path.mkdir(parents=True, exist_ok=True)
+        return output_path / f"{input_path.stem}.data"
+    return output_path
+
+
+def build_argument_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="clayff-toolkit")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    assign_parser = subparsers.add_parser("assign", help="Assign ClayFF types and export a LAMMPS data file.")
+    assign_parser.add_argument("input", help="Input CIF file.")
+    assign_parser.add_argument("output", help="Output data file or directory.")
+    assign_parser.add_argument(
+        "--clayff",
+        default=str(default_clayff_path()),
+        help="Path to ClayFF parameter file.",
+    )
+
+    pipeline_parser = subparsers.add_parser("pipeline", help="Run assignment followed by charge validation.")
+    pipeline_parser.add_argument("input", help="Input CIF file.")
+    pipeline_parser.add_argument("output", help="Output data file or directory.")
+    pipeline_parser.add_argument(
+        "--clayff",
+        default=str(default_clayff_path()),
+        help="Path to ClayFF parameter file.",
+    )
+
+    workflow_parser = subparsers.add_parser(
+        "workflow",
+        help="Run substitution, ClayFF assignment, and charge validation for a single structure.",
+    )
+    workflow_parser.add_argument("input", help="Input structure file.")
+    workflow_parser.add_argument("substituted_output", help="Output substituted structure path.")
+    workflow_parser.add_argument("data_output", help="Output LAMMPS data path.")
+    workflow_parser.add_argument(
+        "--preset",
+        choices=["tetra-octa", "octa-only"],
+        default="tetra-octa",
+        help="Preset substitution rule.",
+    )
+    workflow_parser.add_argument(
+        "--interlayer",
+        choices=["Ca", "Na"],
+        default="Ca",
+        help="Target interlayer cation species.",
+    )
+    workflow_parser.add_argument(
+        "--clayff",
+        default=str(default_clayff_path()),
+        help="Path to ClayFF parameter file.",
+    )
+    workflow_parser.add_argument("--seed", type=int, default=20260402, help="Random seed.")
+    workflow_parser.add_argument(
+        "--strict-ratio",
+        action="store_true",
+        help="Require preset ratios to map to exact integer substitution counts.",
+    )
+
+    charge_parser = subparsers.add_parser("charge", help="Calculate the net charge of a data file.")
+    charge_parser.add_argument("path", help="LAMMPS data file path.")
+
+    visualize_parser = subparsers.add_parser("visualize", help="Launch the PyQt visualizer.")
+    visualize_parser.add_argument("--clayff", help="Optional ClayFF parameter file path.")
+    visualize_parser.add_argument("--data", help="Optional LAMMPS data file path.")
+
+    substitute_parser = subparsers.add_parser(
+        "substitute",
+        help="Run the legacy random-layer substitution engine.",
+    )
+    substitute_parser.add_argument("substitution_args", nargs=argparse.REMAINDER)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_argument_parser()
+    args = parser.parse_args(argv)
+
+    if args.command == "assign":
+        input_path = Path(args.input)
+        output_path = _resolve_output_path(input_path, Path(args.output))
+        print(assign_file(input_path, output_path, args.clayff))
+        return 0
+
+    if args.command == "pipeline":
+        input_path = Path(args.input)
+        output_path = _resolve_output_path(input_path, Path(args.output))
+        result = ToolkitPipeline().assign_and_validate(input_path, output_path, args.clayff)
+        print(result.output_path)
+        print(f"net_charge={result.net_charge:.6f}")
+        return 0
+
+    if args.command == "workflow":
+        result = ToolkitPipeline().substitute_assign_validate(
+            input_path=args.input,
+            substituted_structure_path=args.substituted_output,
+            output_path=args.data_output,
+            preset=args.preset,
+            interlayer_species=args.interlayer,
+            clayff_path=args.clayff,
+            seed=args.seed,
+            strict_ratio=args.strict_ratio,
+        )
+        print(result.substituted_path)
+        print(result.output_path)
+        print(f"net_charge={result.net_charge:.6f}")
+        return 0
+
+    if args.command == "charge":
+        print(f"{calculate_net_charge(args.path):.6f}")
+        return 0
+
+    if args.command == "visualize":
+        return launch_visualizer(args.clayff, args.data)
+
+    if args.command == "substitute":
+        forwarded = args.substitution_args
+        if forwarded and forwarded[0] == "--":
+            forwarded = forwarded[1:]
+        return substitution_main(forwarded)
+
+    parser.error(f"Unsupported command: {args.command}")
+    return 2
