@@ -73,6 +73,7 @@ jobs:
           $entries = [System.IO.Compression.ZipFile]::OpenRead($zipPath).Entries.FullName
           foreach ($required in @(
             "ClayFF-Toolkit/ClayFF-Toolkit.exe",
+            "ClayFF-Toolkit/README.txt",
             "clayff.txt",
             "qwindows.dll"
           )) {

@@ -39,12 +39,14 @@ if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
 $scriptDir = Split-Path -Parent $PSCommandPath
 $repoRoot = Split-Path -Parent $scriptDir
 $specPath = Join-Path $repoRoot "packaging\windows\ClayFF-Toolkit.spec"
+$bundleReadmePath = Join-Path $repoRoot "packaging\windows\README.txt"
 $distPath = Join-Path $repoRoot $DistDir
 $workPath = Join-Path $repoRoot $WorkDir
 
 if (-not (Test-Path $specPath)) {
     throw "PyInstaller spec not found: $specPath"
 }
+Assert-PathExists -Path $bundleReadmePath -Description "Windows bundle README"
 
 if (-not $SkipDependencyInstall) {
     & $Python -m pip install --upgrade pip
@@ -66,6 +68,8 @@ Assert-AnyBundleFile -BundleDir $bundleDir -Filter "ovito*.pyd" -Description "OV
 
 & $exePath --smoke-test
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Copy-Item -Path $bundleReadmePath -Destination (Join-Path $bundleDir "README.txt") -Force
 
 $zipPath = Join-Path $distPath "ClayFF-Toolkit-Windows-x64.zip"
 if (Test-Path $zipPath) {

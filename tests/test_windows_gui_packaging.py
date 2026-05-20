@@ -36,6 +36,8 @@ def test_windows_gui_build_script_builds_and_zips_bundle() -> None:
     assert "qwindows.dll" in script
     assert "ovito*.pyd" in script
     assert "clayff.txt" in script
+    assert "packaging\\windows\\README.txt" in script
+    assert "Copy-Item" in script
 
 
 def test_ci_builds_and_uploads_windows_gui_artifact() -> None:
@@ -48,6 +50,7 @@ def test_ci_builds_and_uploads_windows_gui_artifact() -> None:
     assert "ZipFile]::OpenRead" in workflow
     assert "qwindows.dll" in workflow
     assert "clayff.txt" in workflow
+    assert "ClayFF-Toolkit/README.txt" in workflow
 
 
 def test_release_workflow_builds_and_attaches_windows_zip() -> None:
@@ -60,3 +63,12 @@ def test_release_workflow_builds_and_attaches_windows_zip() -> None:
     assert "actions/upload-artifact@v4" in workflow
     assert "gh release upload" in workflow
     assert "ClayFF-Toolkit-Windows-x64.zip" in workflow
+
+
+def test_windows_bundle_readme_guides_gui_users() -> None:
+    readme = (REPO_ROOT / "packaging" / "windows" / "README.txt").read_text(encoding="utf-8")
+
+    assert "Double-click ClayFF-Toolkit.exe" in readme
+    assert "--smoke-test" in readme
+    assert "%LOCALAPPDATA%\\ClayFF-Toolkit\\logs" in readme
+    assert "Do not run ClayFF-Toolkit.exe from inside the zip" in readme
