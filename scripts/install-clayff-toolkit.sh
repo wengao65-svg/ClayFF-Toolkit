@@ -33,13 +33,14 @@ repo_root="$(cd -- "$script_dir/.." && pwd)"
 python_bin="${PYTHON:-python3}"
 venv_dir="${CLAYFF_TOOLKIT_VENV:-$repo_root/.venv}"
 bin_dir="${CLAYFF_TOOLKIT_BIN_DIR:-$HOME/.local/bin}"
-install_extras="[gui]"
+install_gui=1
 update_shell_rc=1
+python_args=()
 
 while (($#)); do
   case "$1" in
     --no-gui)
-      install_extras=""
+      install_gui=0
       shift
       ;;
     --bin-dir)
@@ -68,43 +69,19 @@ done
 
 command -v "$python_bin" >/dev/null 2>&1 || die "Python executable not found: $python_bin"
 
-mkdir -p "$bin_dir"
-"$python_bin" -m venv "$venv_dir"
-"$venv_dir/bin/python" -m pip install --upgrade pip
-"$venv_dir/bin/python" -m pip install -e "$repo_root$install_extras"
-
-launcher_path="$bin_dir/clayff-toolkit"
-cat >"$launcher_path" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-exec "$venv_dir/bin/python" -m clayff_toolkit "\$@"
-EOF
-chmod +x "$launcher_path"
-
-if ((update_shell_rc)); then
-  begin_marker="# >>> ClayFF-Toolkit user command path >>>"
-  end_marker="# <<< ClayFF-Toolkit user command path <<<"
-
-  for rc_file in "$HOME/.bashrc" "$HOME/.profile"; do
-    touch "$rc_file"
-    tmp_rc="$(mktemp)"
-    awk -v begin="$begin_marker" -v end="$end_marker" '
-      $0 == begin { skip = 1; next }
-      $0 == end { skip = 0; next }
-      !skip { print }
-    ' "$rc_file" >"$tmp_rc"
-    {
-      cat "$tmp_rc"
-      printf '\n%s\n' "$begin_marker"
-      printf 'export PATH="%s:$PATH"\n' "$bin_dir"
-      printf '%s\n' "$end_marker"
-    } >"$rc_file"
-    rm -f "$tmp_rc"
-  done
+if ((install_gui == 0)); then
+  python_args+=(--no-gui)
+fi
+if ((update_shell_rc == 0)); then
+  python_args+=(--no-path-update)
 fi
 
-printf 'Installed ClayFF-Toolkit launcher: %s\n' "$launcher_path"
-printf 'Verify with: clayff-toolkit --help\n'
-if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
-  printf 'Open a new terminal or run: export PATH="%s:$PATH"\n' "$bin_dir"
-fi
+"$python_bin" "$script_dir/install_clayff_toolkit.py" \
+  --platform posix \
+  --repo-root "$repo_root" \
+  --python "$python_bin" \
+  --venv "$venv_dir" \
+  --bin-dir "$bin_dir" \
+  --shell-rc "$HOME/.bashrc" \
+  --shell-rc "$HOME/.profile" \
+  "${python_args[@]}"

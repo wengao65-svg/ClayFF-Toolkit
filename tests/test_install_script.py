@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -34,6 +35,10 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "clayff_toolkit" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == *"install_clayff_toolkit.py" ]]; then
+  exec "$REAL_PYTHON" "$@"
+fi
+
 exit 0
 """,
         encoding="utf-8",
@@ -54,6 +59,7 @@ def _run_installer(tmp_path: Path, *args: str) -> tuple[Path, Path, Path, Path]:
             "HOME": str(home),
             "PYTHON": str(fake_python),
             "FAKE_PYTHON_LOG": str(log_path),
+            "REAL_PYTHON": sys.executable,
         }
     )
 
