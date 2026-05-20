@@ -33,15 +33,31 @@ validation, and LAMMPS `.data` export.
 - CIF loading uses the toolkit's own periodic parser for triclinic cells, which
   avoids the previous ASE warning path during normal workflow execution
 
-## CLI
+## Install And Run
 
-Install as a persistent user command on Linux:
+For Windows GUI users, download `ClayFF-Toolkit-Windows-x64.zip` from the
+release or CI artifact, extract it, and double-click:
+
+```text
+ClayFF-Toolkit/ClayFF-Toolkit.exe
+```
+
+Do not run the executable from inside the zip viewer; extract the whole
+`ClayFF-Toolkit` folder first. To verify the packaged GUI without opening the
+window, run:
+
+```powershell
+.\ClayFF-Toolkit\ClayFF-Toolkit.exe --smoke-test
+```
+
+For Linux users, install as a persistent user command:
 
 ```bash
 bash scripts/install-clayff-toolkit.sh
 ```
 
-Install on Windows from PowerShell:
+For Windows developers or command-line users who prefer a Python environment,
+install from PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1

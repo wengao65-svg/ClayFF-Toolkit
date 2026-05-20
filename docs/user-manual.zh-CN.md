@@ -75,13 +75,36 @@
 
 ## 4. 安装
 
+### 4.1 Windows GUI 免安装包
+
+Windows 普通用户推荐使用 GUI 压缩包：
+
+1. 从发布页或 CI artifact 下载 `ClayFF-Toolkit-Windows-x64.zip`
+2. 解压整个压缩包
+3. 双击运行：
+
+```text
+ClayFF-Toolkit\ClayFF-Toolkit.exe
+```
+
+不要直接在压缩包预览窗口里运行 exe，必须先解压整个 `ClayFF-Toolkit`
+目录。首次启动可能较慢；如果 Windows Defender 弹出提示，请确认来源可信后再运行。
+
+如需在不打开 GUI 窗口的情况下检查压缩包是否完整，可在 PowerShell 中执行：
+
+```powershell
+.\ClayFF-Toolkit\ClayFF-Toolkit.exe --smoke-test
+```
+
+### 4.2 命令行/开发安装
+
 Linux 用户在项目根目录执行：
 
 ```bash
 bash scripts/install-clayff-toolkit.sh
 ```
 
-Windows 用户在 PowerShell 中执行：
+Windows 开发者或命令行用户在 PowerShell 中执行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1
@@ -542,7 +565,16 @@ clayff-toolkit --help
 
 ### 10.2 GUI 启动失败，提示缺少 Qt
 
-说明 GUI 依赖没有装好。
+如果使用的是 Windows GUI 压缩包，先确认已经解压整个 `ClayFF-Toolkit`
+目录，而不是直接在 zip 预览窗口中运行 exe。然后在 PowerShell 中执行：
+
+```powershell
+.\ClayFF-Toolkit\ClayFF-Toolkit.exe --smoke-test
+```
+
+如果 smoke test 提示缺少 GUI 依赖，说明压缩包构建不完整，应重新下载或重新构建 artifact。
+
+如果使用的是 Python/PowerShell 安装脚本，说明 GUI 依赖没有装好。
 
 先检查 GUI 环境：
 
