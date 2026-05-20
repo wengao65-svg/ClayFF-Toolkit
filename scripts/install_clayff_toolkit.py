@@ -20,7 +20,7 @@ PATH_END_MARKER = "# <<< ClayFF-Toolkit user command path <<<"
 @dataclass(frozen=True)
 class InstallConfig:
     repo_root: Path
-    python: str
+    python: tuple[str, ...]
     venv_dir: Path
     bin_dir: Path
     gui: bool = True
@@ -80,7 +80,7 @@ def run_command(command: Sequence[str]) -> None:
 
 def create_venv_and_install(config: InstallConfig, runner: Runner = run_command) -> None:
     config.bin_dir.mkdir(parents=True, exist_ok=True)
-    runner([config.python, "-m", "venv", str(config.venv_dir)])
+    runner([*config.python, "-m", "venv", str(config.venv_dir)])
     runner([str(config.venv_python), "-m", "pip", "install", "--upgrade", "pip"])
     runner([str(config.venv_python), "-m", "pip", "install", "-e", config.install_target])
 
@@ -165,6 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Install ClayFF-Toolkit as a persistent user command.")
     parser.add_argument("--repo-root", type=Path, default=default_repo_root())
     parser.add_argument("--python", default=os.environ.get("PYTHON", "python3"))
+    parser.add_argument("--python-arg", action="append", default=[])
     parser.add_argument("--venv", type=Path)
     parser.add_argument("--bin-dir", type=Path)
     parser.add_argument("--platform", choices=["posix", "windows"], default=default_platform())
@@ -179,7 +180,7 @@ def config_from_args(args: argparse.Namespace) -> InstallConfig:
     platform: PlatformName = args.platform
     return InstallConfig(
         repo_root=repo_root,
-        python=args.python,
+        python=(args.python, *args.python_arg),
         venv_dir=(args.venv or default_venv_dir(repo_root)).resolve(),
         bin_dir=(args.bin_dir or default_bin_dir(platform)).resolve(),
         gui=not args.no_gui,

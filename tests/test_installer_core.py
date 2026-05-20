@@ -23,7 +23,7 @@ def test_posix_install_writes_launcher_and_path_block(tmp_path: Path) -> None:
 
     config = InstallConfig(
         repo_root=repo_root,
-        python="python3",
+        python=("python3",),
         venv_dir=venv_dir,
         bin_dir=bin_dir,
         gui=False,
@@ -54,7 +54,7 @@ def test_windows_install_writes_cmd_launcher_without_shell_rc(tmp_path: Path) ->
 
     config = InstallConfig(
         repo_root=repo_root,
-        python="py -3",
+        python=("py", "-3"),
         venv_dir=venv_dir,
         bin_dir=bin_dir,
         gui=True,
@@ -64,7 +64,7 @@ def test_windows_install_writes_cmd_launcher_without_shell_rc(tmp_path: Path) ->
     launcher = install(config, runner=lambda command: commands.append(list(command)))
 
     assert commands == [
-        ["py -3", "-m", "venv", str(venv_dir)],
+        ["py", "-3", "-m", "venv", str(venv_dir)],
         [str(venv_dir / "Scripts" / "python.exe"), "-m", "pip", "install", "--upgrade", "pip"],
         [str(venv_dir / "Scripts" / "python.exe"), "-m", "pip", "install", "-e", f"{repo_root}[gui]"],
     ]
