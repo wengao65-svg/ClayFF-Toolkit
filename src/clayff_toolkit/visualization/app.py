@@ -64,7 +64,9 @@ def _qt_imports():
         )
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise RuntimeError(
-            "PySide6 and OVITO are required for the visualizer. Install with `pip install -e '.[gui]'`."
+            "PySide6 and OVITO are required for the visualizer. "
+            "Install GUI dependencies with `bash scripts/install-clayff-toolkit.sh` on Linux or "
+            "`powershell -ExecutionPolicy Bypass -File scripts\\install-clayff-toolkit.ps1` on Windows."
         ) from exc
     return {
         "QApplication": QApplication,

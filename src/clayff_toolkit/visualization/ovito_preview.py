@@ -319,7 +319,9 @@ def render_structure_preview(
         from ovito.vis import Viewport
     except Exception as exc:  # pragma: no cover - package/environment dependent
         raise RuntimeError(
-            "OVITO is required for structure rendering. Install with `pip install ovito`."
+            "OVITO is required for structure rendering. "
+            "Install GUI dependencies with `bash scripts/install-clayff-toolkit.sh` on Linux or "
+            "`powershell -ExecutionPolicy Bypass -File scripts\\install-clayff-toolkit.ps1` on Windows."
         ) from exc
 
     pipeline, _cell_vis = _build_structure_pipeline(

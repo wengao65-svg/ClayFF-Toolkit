@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import shutil
+import sys
 from pathlib import Path
 
 from .assignment.service import assign_file, default_clayff_path
@@ -83,12 +86,48 @@ def build_argument_parser() -> argparse.ArgumentParser:
     visualize_parser.add_argument("--clayff", help="Optional ClayFF parameter file path.")
     visualize_parser.add_argument("--data", help="Optional LAMMPS data file path.")
 
+    doctor_parser = subparsers.add_parser("doctor", help="Check the current ClayFF-Toolkit environment.")
+    doctor_parser.add_argument("--gui", action="store_true", help="Also check GUI dependencies.")
+
     substitute_parser = subparsers.add_parser(
         "substitute",
         help="Run the legacy random-layer substitution engine.",
     )
     substitute_parser.add_argument("substitution_args", nargs=argparse.REMAINDER)
     return parser
+
+
+def _module_available(module_name: str) -> bool:
+    return importlib.util.find_spec(module_name) is not None
+
+
+def build_doctor_report(require_gui: bool = False) -> tuple[int, list[str]]:
+    package_root = Path(__file__).resolve().parents[1]
+    launcher_path = shutil.which("clayff-toolkit")
+    lines = [
+        "ClayFF-Toolkit environment diagnostics",
+        f"python_executable={sys.executable}",
+        f"package_path={package_root}",
+        f"console_script={launcher_path or 'not found on PATH'}",
+    ]
+
+    missing_required: list[str] = []
+    if require_gui:
+        for module_name in ("PySide6", "ovito"):
+            available = _module_available(module_name)
+            lines.append(f"gui_dependency.{module_name}={'ok' if available else 'missing'}")
+            if not available:
+                missing_required.append(module_name)
+
+    if missing_required:
+        lines.append(f"missing_required={','.join(missing_required)}")
+        lines.append("Install GUI dependencies with the platform installer:")
+        lines.append("  Linux: bash scripts/install-clayff-toolkit.sh")
+        lines.append("  Windows: powershell -ExecutionPolicy Bypass -File scripts\\install-clayff-toolkit.ps1")
+        return 1, lines
+
+    lines.append("status=ok")
+    return 0, lines
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -131,6 +170,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "visualize":
         return launch_visualizer(args.clayff, args.data)
+
+    if args.command == "doctor":
+        exit_code, lines = build_doctor_report(require_gui=args.gui)
+        print("\n".join(lines))
+        return exit_code
 
     if args.command == "substitute":
         forwarded = args.substitution_args
