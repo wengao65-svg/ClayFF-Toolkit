@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (-not $IsWindows) {
+if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
     throw "Windows GUI bundles must be built on Windows."
 }
 
