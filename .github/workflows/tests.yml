@@ -1,0 +1,53 @@
+name: tests
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  linux-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest
+      - name: Run Linux core tests
+        run: |
+          python -m pytest \
+            tests/test_install_script.py \
+            tests/test_windows_install_script.py \
+            tests/test_cli_doctor.py
+      - name: Check CLI diagnostics
+        run: python -m clayff_toolkit doctor
+
+  windows-core:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest
+      - name: Run Windows core tests
+        run: |
+          python -m pytest `
+            tests/test_windows_install_script.py `
+            tests/test_cli_doctor.py
+      - name: Smoke-test PowerShell installer
+        run: |
+          $binDir = Join-Path $env:RUNNER_TEMP "clayff-bin"
+          $venvDir = Join-Path $env:RUNNER_TEMP "clayff-venv"
+          powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1 -NoGui -NoPathUpdate -BinDir $binDir -Venv $venvDir
+          & (Join-Path $binDir "clayff-toolkit.cmd") --help
+          & (Join-Path $binDir "clayff-toolkit.cmd") doctor
