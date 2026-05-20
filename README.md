@@ -35,7 +35,22 @@ validation, and LAMMPS `.data` export.
 
 ## CLI
 
-Install locally:
+Install as a persistent user command:
+
+```bash
+bash scripts/install-clayff-toolkit.sh
+```
+
+The installer creates a local virtual environment and writes a stable
+`clayff-toolkit` launcher to `~/.local/bin`, so the command remains available
+after opening a new terminal or rebooting. For CLI-only installs, run:
+
+```bash
+bash scripts/install-clayff-toolkit.sh --no-gui
+```
+
+For development, editable installs still work inside the active Python
+environment:
 
 ```bash
 python -m pip install -e '.[gui]'

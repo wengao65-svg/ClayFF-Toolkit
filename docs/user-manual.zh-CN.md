@@ -78,16 +78,33 @@
 在项目根目录执行：
 
 ```bash
-python -m pip install -e '.[gui]'
+bash scripts/install-clayff-toolkit.sh
 ```
 
-安装完成后，可直接使用：
+这个脚本会在仓库内创建或复用 `.venv`，并把稳定的
+`clayff-toolkit` 启动器写入 `~/.local/bin`。脚本也会把该目录写入
+`~/.bashrc` 和 `~/.profile`，因此重启或重新打开终端后仍可直接使用：
 
 ```bash
 clayff-toolkit --help
 ```
 
 如果命令存在，说明本地可执行入口已经安装成功。
+
+如果只需要命令行功能、不需要 GUI，可执行：
+
+```bash
+bash scripts/install-clayff-toolkit.sh --no-gui
+```
+
+开发者也可以继续使用 editable install：
+
+```bash
+python -m pip install -e '.[gui]'
+```
+
+但这种方式只保证当前 Python 环境可用；如果虚拟环境没有激活，重启后可能仍然找不到
+`clayff-toolkit` 命令。
 
 ## 5. 快速开始
 
@@ -464,12 +481,25 @@ clayff-toolkit visualize
 
 ### 10.1 `clayff-toolkit: command not found`
 
-说明本地入口还没安装好。
+说明当前 shell 的 `PATH` 中没有 `clayff-toolkit` 启动器。
 
-重新执行：
+推荐重新执行用户级安装脚本：
 
 ```bash
-python -m pip install -e '.[gui]'
+bash scripts/install-clayff-toolkit.sh
+```
+
+然后重新打开终端，或在当前终端执行：
+
+```bash
+source ~/.bashrc
+```
+
+检查命令位置：
+
+```bash
+command -v clayff-toolkit
+clayff-toolkit --help
 ```
 
 ### 10.2 GUI 启动失败，提示缺少 Qt
