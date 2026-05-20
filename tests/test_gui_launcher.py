@@ -61,3 +61,25 @@ def test_gui_launcher_default_launches_visualizer(monkeypatch) -> None:
 
     assert exit_code == 0
     assert calls == [("params.txt", "input.data")]
+
+
+def test_gui_launcher_writes_crash_log_on_startup_failure(monkeypatch, tmp_path: Path, capsys) -> None:
+    log_dir = tmp_path / "logs"
+    monkeypatch.setenv("CLAYFF_TOOLKIT_LOG_DIR", str(log_dir))
+    monkeypatch.setattr(gui_launcher, "show_crash_message", lambda log_path: None)
+
+    def fail_to_launch(clayff, data):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(gui_launcher, "launch_visualizer", fail_to_launch)
+
+    exit_code = gui_launcher.main([])
+    captured = capsys.readouterr()
+    logs = list(log_dir.glob("gui-crash-*.log"))
+
+    assert exit_code == 1
+    assert len(logs) == 1
+    assert "Details were written to:" in captured.err
+    log_text = logs[0].read_text(encoding="utf-8")
+    assert "ClayFF-Toolkit GUI startup failure" in log_text
+    assert "RuntimeError: boom" in log_text
