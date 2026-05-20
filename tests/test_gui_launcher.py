@@ -1,0 +1,63 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from clayff_toolkit import gui_launcher
+
+
+def test_gui_launcher_smoke_report_success(monkeypatch, tmp_path: Path) -> None:
+    clayff_path = tmp_path / "clayff.txt"
+    clayff_path.write_text("# test resource\n", encoding="utf-8")
+    monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
+    monkeypatch.setattr(gui_launcher, "_module_available", lambda module_name: True)
+
+    exit_code, lines = gui_launcher.build_smoke_report()
+
+    assert exit_code == 0
+    assert "resource.clayff=ok" in lines
+    assert "gui_dependency.PySide6=ok" in lines
+    assert "gui_dependency.ovito=ok" in lines
+    assert "status=ok" in lines
+
+
+def test_gui_launcher_smoke_report_reports_missing_gui_dependency(monkeypatch, tmp_path: Path) -> None:
+    clayff_path = tmp_path / "clayff.txt"
+    clayff_path.write_text("# test resource\n", encoding="utf-8")
+    monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
+    monkeypatch.setattr(gui_launcher, "_module_available", lambda module_name: module_name == "PySide6")
+
+    exit_code, lines = gui_launcher.build_smoke_report()
+
+    assert exit_code == 1
+    assert "resource.clayff=ok" in lines
+    assert "gui_dependency.PySide6=ok" in lines
+    assert "gui_dependency.ovito=missing" in lines
+    assert "missing_required=ovito" in lines
+
+
+def test_gui_launcher_smoke_test_command_prints_report(monkeypatch, tmp_path: Path, capsys) -> None:
+    clayff_path = tmp_path / "clayff.txt"
+    clayff_path.write_text("# test resource\n", encoding="utf-8")
+    monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
+    monkeypatch.setattr(gui_launcher, "_module_available", lambda module_name: True)
+
+    exit_code = gui_launcher.main(["--smoke-test"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "ClayFF-Toolkit GUI package smoke test" in captured.out
+    assert "status=ok" in captured.out
+
+
+def test_gui_launcher_default_launches_visualizer(monkeypatch) -> None:
+    calls = []
+    monkeypatch.setattr(
+        gui_launcher,
+        "launch_visualizer",
+        lambda clayff, data: calls.append((clayff, data)) or 0,
+    )
+
+    exit_code = gui_launcher.main(["--clayff", "params.txt", "--data", "input.data"])
+
+    assert exit_code == 0
+    assert calls == [("params.txt", "input.data")]
