@@ -7,6 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATH = REPO_ROOT / "packaging" / "windows" / "ClayFF-Toolkit.spec"
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-windows-gui.ps1"
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
+RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-windows.yml"
 
 
 def test_pyinstaller_spec_targets_gui_launcher_and_onedir_bundle() -> None:
@@ -47,3 +48,15 @@ def test_ci_builds_and_uploads_windows_gui_artifact() -> None:
     assert "ZipFile]::OpenRead" in workflow
     assert "qwindows.dll" in workflow
     assert "clayff.txt" in workflow
+
+
+def test_release_workflow_builds_and_attaches_windows_zip() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "workflow_dispatch:" in workflow
+    assert "release:" in workflow
+    assert "contents: write" in workflow
+    assert "scripts\\build-windows-gui.ps1" in workflow
+    assert "actions/upload-artifact@v4" in workflow
+    assert "gh release upload" in workflow
+    assert "ClayFF-Toolkit-Windows-x64.zip" in workflow
