@@ -35,18 +35,28 @@ validation, and LAMMPS `.data` export.
 
 ## CLI
 
-Install as a persistent user command:
+Install as a persistent user command on Linux:
 
 ```bash
 bash scripts/install-clayff-toolkit.sh
 ```
 
-The installer creates a local virtual environment and writes a stable
-`clayff-toolkit` launcher to `~/.local/bin`, so the command remains available
-after opening a new terminal or rebooting. For CLI-only installs, run:
+Install on Windows from PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1
+```
+
+The installer creates a local virtual environment and writes a stable launcher
+to the user command path, so `clayff-toolkit` remains available after opening a
+new terminal or rebooting. For CLI-only installs, run:
 
 ```bash
 bash scripts/install-clayff-toolkit.sh --no-gui
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1 -NoGui
 ```
 
 For development, editable installs still work inside the active Python
@@ -62,6 +72,7 @@ Run:
 clayff-toolkit assign input.cif output.data
 clayff-toolkit workflow input.cif substituted.cif output.data --preset octa-only --interlayer Ca
 clayff-toolkit charge output.data
+clayff-toolkit doctor --gui
 clayff-toolkit visualize
 ```
 

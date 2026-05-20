@@ -75,15 +75,21 @@
 
 ## 4. 安装
 
-在项目根目录执行：
+Linux 用户在项目根目录执行：
 
 ```bash
 bash scripts/install-clayff-toolkit.sh
 ```
 
-这个脚本会在仓库内创建或复用 `.venv`，并把稳定的
-`clayff-toolkit` 启动器写入 `~/.local/bin`。脚本也会把该目录写入
-`~/.bashrc` 和 `~/.profile`，因此重启或重新打开终端后仍可直接使用：
+Windows 用户在 PowerShell 中执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1
+```
+
+安装脚本会在仓库内创建或复用 `.venv`，并把稳定的 `clayff-toolkit`
+启动器写入用户级命令目录。Linux 写入 `~/.local/bin`，Windows 写入
+`%LOCALAPPDATA%\ClayFF-Toolkit\bin`。脚本也会更新用户级 PATH，因此重启或重新打开终端后仍可直接使用：
 
 ```bash
 clayff-toolkit --help
@@ -97,6 +103,12 @@ clayff-toolkit --help
 bash scripts/install-clayff-toolkit.sh --no-gui
 ```
 
+Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1 -NoGui
+```
+
 开发者也可以继续使用 editable install：
 
 ```bash
@@ -104,7 +116,17 @@ python -m pip install -e '.[gui]'
 ```
 
 但这种方式只保证当前 Python 环境可用；如果虚拟环境没有激活，重启后可能仍然找不到
-`clayff-toolkit` 命令。
+`clayff-toolkit` 命令。开发和测试时请使用仓库内的 `.venv`：
+
+```bash
+./.venv/bin/python -m pytest
+```
+
+Windows:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
 
 ## 5. 快速开始
 
@@ -483,7 +505,7 @@ clayff-toolkit visualize
 
 说明当前 shell 的 `PATH` 中没有 `clayff-toolkit` 启动器。
 
-推荐重新执行用户级安装脚本：
+Linux 推荐重新执行用户级安装脚本：
 
 ```bash
 bash scripts/install-clayff-toolkit.sh
@@ -502,14 +524,42 @@ command -v clayff-toolkit
 clayff-toolkit --help
 ```
 
+Windows 推荐重新执行 PowerShell 安装脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1
+```
+
+然后重新打开 PowerShell，检查命令位置：
+
+```powershell
+where.exe clayff-toolkit
+clayff-toolkit --help
+```
+
+如果 PowerShell 拒绝运行脚本，请确认命令中包含
+`-ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1`。
+
 ### 10.2 GUI 启动失败，提示缺少 Qt
 
 说明 GUI 依赖没有装好。
 
-执行：
+先检查 GUI 环境：
 
 ```bash
-python -m pip install -e '.[gui]'
+clayff-toolkit doctor --gui
+```
+
+Linux 执行：
+
+```bash
+bash scripts/install-clayff-toolkit.sh
+```
+
+Windows 执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1
 ```
 
 ### 10.3 结构能读入，但分配时报不支持元素
