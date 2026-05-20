@@ -6,6 +6,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATH = REPO_ROOT / "packaging" / "windows" / "ClayFF-Toolkit.spec"
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-windows-gui.ps1"
+WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
 
 
 def test_pyinstaller_spec_targets_gui_launcher_and_onedir_bundle() -> None:
@@ -30,3 +31,12 @@ def test_windows_gui_build_script_builds_and_zips_bundle() -> None:
     assert "Compress-Archive" in script
     assert "ClayFF-Toolkit-Windows-x64.zip" in script
     assert "Windows GUI bundles must be built on Windows." in script
+
+
+def test_ci_builds_and_uploads_windows_gui_artifact() -> None:
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "windows-gui-artifact:" in workflow
+    assert "scripts\\build-windows-gui.ps1" in workflow
+    assert "actions/upload-artifact@v4" in workflow
+    assert "ClayFF-Toolkit-Windows-x64.zip" in workflow

@@ -51,3 +51,26 @@ jobs:
           powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1 -NoGui -NoPathUpdate -BinDir $binDir -Venv $venvDir
           & (Join-Path $binDir "clayff-toolkit.cmd") --help
           & (Join-Path $binDir "clayff-toolkit.cmd") doctor
+
+  windows-gui-artifact:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build Windows GUI bundle
+        run: powershell -ExecutionPolicy Bypass -File scripts\build-windows-gui.ps1 -Python python
+      - name: Verify bundle artifact
+        run: |
+          $zipPath = Join-Path $PWD "dist\ClayFF-Toolkit-Windows-x64.zip"
+          if (-not (Test-Path $zipPath)) {
+            throw "Expected bundle zip was not created: $zipPath"
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClayFF-Toolkit-Windows-x64
+          path: dist/ClayFF-Toolkit-Windows-x64.zip
