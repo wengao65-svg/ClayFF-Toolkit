@@ -70,6 +70,16 @@ jobs:
           if (-not (Test-Path $zipPath)) {
             throw "Expected bundle zip was not created: $zipPath"
           }
+          $entries = [System.IO.Compression.ZipFile]::OpenRead($zipPath).Entries.FullName
+          foreach ($required in @(
+            "ClayFF-Toolkit/ClayFF-Toolkit.exe",
+            "clayff.txt",
+            "qwindows.dll"
+          )) {
+            if (-not ($entries | Where-Object { $_ -like "*$required*" })) {
+              throw "Expected bundle zip entry was not found: $required"
+            }
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: ClayFF-Toolkit-Windows-x64

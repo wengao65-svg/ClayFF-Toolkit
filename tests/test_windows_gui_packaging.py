@@ -31,6 +31,10 @@ def test_windows_gui_build_script_builds_and_zips_bundle() -> None:
     assert "Compress-Archive" in script
     assert "ClayFF-Toolkit-Windows-x64.zip" in script
     assert "Windows GUI bundles must be built on Windows." in script
+    assert "Assert-AnyBundleFile" in script
+    assert "qwindows.dll" in script
+    assert "ovito*.pyd" in script
+    assert "clayff.txt" in script
 
 
 def test_ci_builds_and_uploads_windows_gui_artifact() -> None:
@@ -40,3 +44,6 @@ def test_ci_builds_and_uploads_windows_gui_artifact() -> None:
     assert "scripts\\build-windows-gui.ps1" in workflow
     assert "actions/upload-artifact@v4" in workflow
     assert "ClayFF-Toolkit-Windows-x64.zip" in workflow
+    assert "ZipFile]::OpenRead" in workflow
+    assert "qwindows.dll" in workflow
+    assert "clayff.txt" in workflow
