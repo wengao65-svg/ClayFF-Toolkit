@@ -32,7 +32,10 @@ def test_doctor_command_prints_report(capsys) -> None:
 
 
 def test_doctor_gui_reports_missing_dependencies(monkeypatch) -> None:
-    monkeypatch.setattr("clayff_toolkit.cli._module_available", lambda module_name: module_name != "ovito")
+    monkeypatch.setattr(
+        "clayff_toolkit.cli._module_import_error",
+        lambda module_name: "ImportError: missing" if module_name == "ovito" else None,
+    )
 
     exit_code, lines = build_doctor_report(require_gui=True)
 
@@ -41,3 +44,18 @@ def test_doctor_gui_reports_missing_dependencies(monkeypatch) -> None:
     assert "gui_dependency.ovito=missing" in lines
     assert "missing_required=ovito" in lines
     assert any("scripts\\install-clayff-toolkit.ps1" in line for line in lines)
+
+
+def test_doctor_gui_treats_import_failure_as_missing(monkeypatch) -> None:
+    def fake_import_module(module_name: str):
+        if module_name == "ovito":
+            raise ImportError("missing Qt runtime")
+        return object()
+
+    monkeypatch.setattr("clayff_toolkit.cli.importlib.import_module", fake_import_module)
+
+    exit_code, lines = build_doctor_report(require_gui=True)
+
+    assert exit_code == 1
+    assert "gui_dependency.PySide6=ok" in lines
+    assert "gui_dependency.ovito=missing" in lines

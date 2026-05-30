@@ -38,30 +38,33 @@ from .ovito_preview import (
 
 def _qt_imports():
     try:
-        from PySide6.QtCore import Qt
-        from PySide6.QtGui import QFont, QFontDatabase, QPixmap
-        from PySide6.QtWidgets import (
-            QApplication,
-            QComboBox,
-            QFileDialog,
-            QFrame,
-            QGridLayout,
-            QGroupBox,
-            QHBoxLayout,
-            QHeaderView,
-            QLabel,
-            QLineEdit,
-            QMainWindow,
-            QMessageBox,
-            QPushButton,
-            QSpinBox,
-            QStackedWidget,
-            QTableWidget,
-            QTableWidgetItem,
-            QTextEdit,
-            QVBoxLayout,
-            QWidget,
-        )
+        # OVITO owns the Qt compatibility layer used by the embedded preview.
+        from ovito.qt_compat import QtCore, QtGui, QtWidgets
+
+        Qt = QtCore.Qt
+        QFont = QtGui.QFont
+        QFontDatabase = QtGui.QFontDatabase
+        QPixmap = QtGui.QPixmap
+        QApplication = QtWidgets.QApplication
+        QComboBox = QtWidgets.QComboBox
+        QFileDialog = QtWidgets.QFileDialog
+        QFrame = QtWidgets.QFrame
+        QGridLayout = QtWidgets.QGridLayout
+        QGroupBox = QtWidgets.QGroupBox
+        QHBoxLayout = QtWidgets.QHBoxLayout
+        QHeaderView = QtWidgets.QHeaderView
+        QLabel = QtWidgets.QLabel
+        QLineEdit = QtWidgets.QLineEdit
+        QMainWindow = QtWidgets.QMainWindow
+        QMessageBox = QtWidgets.QMessageBox
+        QPushButton = QtWidgets.QPushButton
+        QSpinBox = QtWidgets.QSpinBox
+        QStackedWidget = QtWidgets.QStackedWidget
+        QTableWidget = QtWidgets.QTableWidget
+        QTableWidgetItem = QtWidgets.QTableWidgetItem
+        QTextEdit = QtWidgets.QTextEdit
+        QVBoxLayout = QtWidgets.QVBoxLayout
+        QWidget = QtWidgets.QWidget
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise RuntimeError(
             "PySide6 and OVITO are required for the visualizer. "

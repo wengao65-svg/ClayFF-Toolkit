@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +18,17 @@ from clayff_toolkit.visualization.ovito_preview import (
 
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+
+
+def _has_module(module_name: str) -> bool:
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except (ImportError, ModuleNotFoundError):
+        return False
+
+
+OVITO_AVAILABLE = _has_module("ovito")
+OVITO_QT_AVAILABLE = _has_module("ovito.qt_compat")
 
 
 class _DummyApp:
@@ -66,6 +78,7 @@ def test_preview_positions_wrap_fractional_coordinates_without_mutating_structur
     assert structure.atoms[0].frac == original_frac
 
 
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_visualizer_window_loads_structure_and_updates_local_environment() -> None:
     app = QApplication.instance() or QApplication([])
     window = build_visualizer_window(
@@ -86,6 +99,7 @@ def test_visualizer_window_loads_structure_and_updates_local_environment() -> No
     window.close()
 
 
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_visualizer_steps_are_independent() -> None:
     app = QApplication.instance() or QApplication([])
     window = build_visualizer_window(
@@ -115,6 +129,7 @@ def test_visualizer_steps_are_independent() -> None:
     second.close()
 
 
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_rerunning_upstream_invalidates_previous_validation_data_file() -> None:
     app = QApplication.instance() or QApplication([])
     window = build_visualizer_window(
@@ -144,6 +159,7 @@ def test_rerunning_upstream_invalidates_previous_validation_data_file() -> None:
     window.close()
 
 
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_preview_uses_ovito_interactive_widget_when_available(monkeypatch) -> None:
     app = QApplication.instance() or QApplication([])
     if not visualization_app.supports_interactive_qwidget():
@@ -168,6 +184,7 @@ def test_preview_uses_ovito_interactive_widget_when_available(monkeypatch) -> No
     window.close()
 
 
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_preview_enables_simulation_cell_vis_for_loaded_structure() -> None:
     app = QApplication.instance() or QApplication([])
     if not visualization_app.supports_interactive_qwidget():
@@ -187,6 +204,7 @@ def test_preview_enables_simulation_cell_vis_for_loaded_structure() -> None:
     window.close()
 
 
+@pytest.mark.skipif(not OVITO_AVAILABLE, reason="OVITO is unavailable.")
 def test_build_structure_pipeline_keeps_simulation_cell_vis_enabled() -> None:
     structure = CifStructure(
         title="triclinic-preview",
@@ -205,6 +223,7 @@ def test_build_structure_pipeline_keeps_simulation_cell_vis_enabled() -> None:
     assert cell_vis.render_cell is True
 
 
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_loading_new_structure_recreates_ovito_preview_and_calls_zoom_all() -> None:
     app = QApplication.instance() or QApplication([])
     if not visualization_app.supports_interactive_qwidget():
@@ -229,6 +248,7 @@ def test_loading_new_structure_recreates_ovito_preview_and_calls_zoom_all() -> N
     window.close()
 
 
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_preview_falls_back_to_static_render_when_interactive_viewport_unavailable(monkeypatch, tmp_path: Path) -> None:
     app = QApplication.instance() or QApplication([])
     window = build_visualizer_window(

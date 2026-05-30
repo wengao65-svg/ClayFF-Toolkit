@@ -4,21 +4,32 @@ from __future__ import annotations
 
 import argparse
 import datetime as _datetime
-import importlib.util
+import importlib
 import os
 import sys
 import traceback
 from pathlib import Path
 
-from .assignment.service import default_clayff_path
-from .visualization.app import launch_visualizer
+from clayff_toolkit.assignment.service import default_clayff_path
+from clayff_toolkit.visualization.app import launch_visualizer
 
 
-GUI_DEPENDENCIES = ("PySide6", "ovito")
+GUI_DEPENDENCY_IMPORTS = {
+    "ovito": "ovito",
+    "PySide6": "ovito.qt_compat",
+}
+
+
+def _module_import_error(module_name: str) -> str | None:
+    try:
+        importlib.import_module(module_name)
+    except Exception as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return None
 
 
 def _module_available(module_name: str) -> bool:
-    return importlib.util.find_spec(module_name) is not None
+    return _module_import_error(module_name) is None
 
 
 def default_log_dir() -> Path:
@@ -78,11 +89,14 @@ def build_smoke_report() -> tuple[int, list[str]]:
     if not clayff_path.exists():
         missing.append("clayff_resource")
 
-    for module_name in GUI_DEPENDENCIES:
-        status = "ok" if _module_available(module_name) else "missing"
-        lines.append(f"gui_dependency.{module_name}={status}")
+    for dependency_name, import_target in GUI_DEPENDENCY_IMPORTS.items():
+        import_error = _module_import_error(import_target)
+        status = "ok" if import_error is None else "missing"
+        lines.append(f"gui_dependency.{dependency_name}={status}")
+        if import_error:
+            lines.append(f"gui_dependency_error.{dependency_name}={import_error}")
         if status != "ok":
-            missing.append(module_name)
+            missing.append(dependency_name)
 
     if missing:
         lines.append(f"missing_required={','.join(missing)}")
@@ -90,6 +104,16 @@ def build_smoke_report() -> tuple[int, list[str]]:
 
     lines.append("status=ok")
     return 0, lines
+
+
+def write_smoke_report(lines: list[str]) -> Path | None:
+    report_path = os.environ.get("CLAYFF_TOOLKIT_SMOKE_REPORT")
+    if not report_path:
+        return None
+    path = Path(report_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
@@ -116,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.smoke_test or args.doctor:
             exit_code, lines = build_smoke_report()
+            write_smoke_report(lines)
             print("\n".join(lines))
             return exit_code
 

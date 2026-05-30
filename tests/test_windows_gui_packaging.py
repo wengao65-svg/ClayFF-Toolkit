@@ -10,50 +10,60 @@ WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-windows.yml"
 
 
-def test_pyinstaller_spec_targets_gui_launcher_and_onedir_bundle() -> None:
+def test_pyinstaller_spec_targets_gui_launcher_and_onefile_executable() -> None:
     spec = SPEC_PATH.read_text(encoding="utf-8")
 
     assert "gui_launcher.py" in spec
     assert 'name="ClayFF-Toolkit"' in spec
     assert "console=False" in spec
-    assert "COLLECT(" in spec
+    assert "COLLECT(" not in spec
+    assert "a.binaries" in spec
+    assert "a.datas" in spec
     assert "clayff_toolkit/resources" in spec
     assert '"ovito"' in spec
     assert '"PySide6"' in spec
+    assert "collect_dynamic_libs" in spec
+    assert "ovito/plugins" in spec
+    assert "shiboken6" in spec
     assert "collect_submodules(package_name)" in spec
 
 
-def test_windows_gui_build_script_builds_and_zips_bundle() -> None:
+def test_windows_gui_build_script_builds_single_executable() -> None:
     script = BUILD_SCRIPT.read_text(encoding="utf-8")
 
     assert "PyInstaller" in script
     assert "ClayFF-Toolkit.spec" in script
     assert "--smoke-test" in script
-    assert "Compress-Archive" in script
-    assert "ClayFF-Toolkit-Windows-x64.zip" in script
-    assert "Windows GUI bundles must be built on Windows." in script
-    assert "Assert-AnyBundleFile" in script
-    assert "qwindows.dll" in script
-    assert "ovito*.pyd" in script
-    assert "clayff.txt" in script
+    assert "Compress-Archive" not in script
+    assert "ClayFF-Toolkit.exe" in script
+    assert "Windows GUI executables must be built on Windows." in script
+    assert "standalone Windows executable" in script
+    assert "Start-Process" in script
+    assert "CLAYFF_TOOLKIT_SMOKE_REPORT" in script
     assert "packaging\\windows\\README.txt" in script
-    assert "Copy-Item" in script
+    assert "Assert-GuiDependenciesImport" in script
+    assert "gui_dependency_preflight=ok" in script
+    assert "official CPython 3.10+" in script
+    assert "Set-IsolatedPythonBuildPath" in script
+    assert "PYTHONNOUSERSITE" in script
+    assert "PYTHONPATH" in script
+    assert "sys.base_prefix" in script
+    assert "[System.IO.Path]::GetTempPath()" in script
+    assert "WorkingDirectory" in script
 
 
-def test_ci_builds_and_uploads_windows_gui_artifact() -> None:
+def test_ci_builds_and_uploads_windows_gui_executable() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
     assert "windows-gui-artifact:" in workflow
     assert "scripts\\build-windows-gui.ps1" in workflow
     assert "actions/upload-artifact@v4" in workflow
-    assert "ClayFF-Toolkit-Windows-x64.zip" in workflow
-    assert "ZipFile]::OpenRead" in workflow
-    assert "qwindows.dll" in workflow
-    assert "clayff.txt" in workflow
-    assert "ClayFF-Toolkit/README.txt" in workflow
+    assert "dist/ClayFF-Toolkit.exe" in workflow
+    assert "ZipFile]::OpenRead" not in workflow
+    assert "--smoke-test" in workflow
 
 
-def test_release_workflow_builds_and_attaches_windows_zip() -> None:
+def test_release_workflow_builds_and_attaches_windows_executable() -> None:
     workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
     assert "workflow_dispatch:" in workflow
@@ -62,7 +72,7 @@ def test_release_workflow_builds_and_attaches_windows_zip() -> None:
     assert "scripts\\build-windows-gui.ps1" in workflow
     assert "actions/upload-artifact@v4" in workflow
     assert "gh release upload" in workflow
-    assert "ClayFF-Toolkit-Windows-x64.zip" in workflow
+    assert "dist\\ClayFF-Toolkit.exe" in workflow
 
 
 def test_windows_bundle_readme_guides_gui_users() -> None:
@@ -71,4 +81,4 @@ def test_windows_bundle_readme_guides_gui_users() -> None:
     assert "Double-click ClayFF-Toolkit.exe" in readme
     assert "--smoke-test" in readme
     assert "%LOCALAPPDATA%\\ClayFF-Toolkit\\logs" in readme
-    assert "Do not run ClayFF-Toolkit.exe from inside the zip" in readme
+    assert "bundled in the executable" in readme

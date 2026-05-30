@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -67,6 +68,67 @@ def test_windows_install_script_has_valid_powershell_syntax_when_available() -> 
         "[scriptblock]::Create($script) | Out-Null"
     )
     subprocess.run([pwsh, "-NoProfile", "-Command", command], check=True)
+
+
+def test_windows_install_script_accepts_single_python_command(tmp_path: Path) -> None:
+    pwsh = shutil.which("pwsh") or shutil.which("powershell")
+    if not pwsh:
+        pytest.skip("PowerShell is not available in this environment")
+
+    repo_root = tmp_path / "repo"
+    scripts_dir = repo_root / "scripts"
+    scripts_dir.mkdir(parents=True)
+
+    copied_script = scripts_dir / "install-clayff-toolkit.ps1"
+    copied_script.write_text(WINDOWS_INSTALL_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+
+    captured_args_path = repo_root / "captured-args.json"
+    stub_core = scripts_dir / "install_clayff_toolkit.py"
+    stub_core.write_text(
+        "\n".join(
+            [
+                "import json",
+                "import sys",
+                "from pathlib import Path",
+                f"Path(r\"{captured_args_path}\").write_text(json.dumps(sys.argv[1:]), encoding='utf-8')",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    bin_dir = tmp_path / "bin"
+    venv_dir = tmp_path / "venv"
+    result = subprocess.run(
+        [
+            pwsh,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(copied_script),
+            "-Python",
+            "python",
+            "-NoGui",
+            "-NoPathUpdate",
+            "-BinDir",
+            str(bin_dir),
+            "-Venv",
+            str(venv_dir),
+        ],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+    forwarded_args = json.loads(captured_args_path.read_text(encoding="utf-8"))
+    assert "--platform" in forwarded_args
+    assert "windows" in forwarded_args
+    assert "--python" in forwarded_args
+    assert "python" in forwarded_args
+    assert "--no-gui" in forwarded_args
+    assert "--no-path-update" in forwarded_args
+    assert "Installed ClayFF-Toolkit launcher:" in result.stdout
 
 
 def test_installer_core_help_runs_from_dev_venv() -> None:

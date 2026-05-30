@@ -62,26 +62,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Build Windows GUI bundle
+      - name: Build Windows GUI executable
         run: powershell -ExecutionPolicy Bypass -File scripts\build-windows-gui.ps1 -Python python
-      - name: Verify bundle artifact
+      - name: Verify executable artifact
         run: |
-          $zipPath = Join-Path $PWD "dist\ClayFF-Toolkit-Windows-x64.zip"
-          if (-not (Test-Path $zipPath)) {
-            throw "Expected bundle zip was not created: $zipPath"
+          $exePath = Join-Path $PWD "dist\ClayFF-Toolkit.exe"
+          if (-not (Test-Path $exePath)) {
+            throw "Expected Windows executable was not created: $exePath"
           }
-          $entries = [System.IO.Compression.ZipFile]::OpenRead($zipPath).Entries.FullName
-          foreach ($required in @(
-            "ClayFF-Toolkit/ClayFF-Toolkit.exe",
-            "ClayFF-Toolkit/README.txt",
-            "clayff.txt",
-            "qwindows.dll"
-          )) {
-            if (-not ($entries | Where-Object { $_ -like "*$required*" })) {
-              throw "Expected bundle zip entry was not found: $required"
-            }
-          }
+          & $exePath --smoke-test
       - uses: actions/upload-artifact@v4
         with:
           name: ClayFF-Toolkit-Windows-x64
-          path: dist/ClayFF-Toolkit-Windows-x64.zip
+          path: dist/ClayFF-Toolkit.exe

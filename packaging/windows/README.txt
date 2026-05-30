@@ -3,9 +3,9 @@ ClayFF-Toolkit for Windows
 
 Quick start
 -----------
-1. Extract the entire ClayFF-Toolkit folder from the zip file.
+1. Download ClayFF-Toolkit.exe from the release or CI artifact.
 2. Double-click ClayFF-Toolkit.exe to start the GUI.
-3. Do not run ClayFF-Toolkit.exe from inside the zip preview window.
+3. The required Python, Qt, OVITO, and ClayFF resource files are bundled in the executable.
 
 Diagnostics
 -----------

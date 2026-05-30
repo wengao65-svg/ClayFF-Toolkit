@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
+import importlib
 import shutil
 import sys
 from pathlib import Path
@@ -13,6 +13,11 @@ from .pipeline import ToolkitPipeline
 from .substitution.engine import main as substitution_main
 from .validation.charges import calculate_net_charge
 from .visualization.app import launch_visualizer
+
+GUI_DEPENDENCY_IMPORTS = {
+    "ovito": "ovito",
+    "PySide6": "ovito.qt_compat",
+}
 
 
 def _resolve_output_path(input_path: Path, output_path: Path) -> Path:
@@ -97,8 +102,16 @@ def build_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _module_import_error(module_name: str) -> str | None:
+    try:
+        importlib.import_module(module_name)
+    except Exception as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return None
+
+
 def _module_available(module_name: str) -> bool:
-    return importlib.util.find_spec(module_name) is not None
+    return _module_import_error(module_name) is None
 
 
 def build_doctor_report(require_gui: bool = False) -> tuple[int, list[str]]:
@@ -113,11 +126,14 @@ def build_doctor_report(require_gui: bool = False) -> tuple[int, list[str]]:
 
     missing_required: list[str] = []
     if require_gui:
-        for module_name in ("PySide6", "ovito"):
-            available = _module_available(module_name)
-            lines.append(f"gui_dependency.{module_name}={'ok' if available else 'missing'}")
+        for dependency_name, import_target in GUI_DEPENDENCY_IMPORTS.items():
+            import_error = _module_import_error(import_target)
+            available = import_error is None
+            lines.append(f"gui_dependency.{dependency_name}={'ok' if available else 'missing'}")
+            if import_error:
+                lines.append(f"gui_dependency_error.{dependency_name}={import_error}")
             if not available:
-                missing_required.append(module_name)
+                missing_required.append(dependency_name)
 
     if missing_required:
         lines.append(f"missing_required={','.join(missing_required)}")

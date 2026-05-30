@@ -10,6 +10,8 @@ dist/
 .omx/
 *.egg-info/
 .venv/
+.venv-windows-build/
+.python/
 venv/
 .coverage
 htmlcov/

@@ -19,21 +19,46 @@ function Assert-PathExists {
     }
 }
 
-function Assert-AnyBundleFile {
-    param(
-        [string]$BundleDir,
-        [string]$Filter,
-        [string]$Description
-    )
-
-    $match = Get-ChildItem -Path $BundleDir -Recurse -File -Filter $Filter -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $match) {
-        throw "Missing ${Description} in bundle: $Filter"
+function Assert-GuiDependenciesImport {
+    Write-Host "Checking GUI dependencies in the build Python environment..."
+    & $Python -c "import ovito; import ovito.qt_compat; print('gui_dependency_preflight=ok')"
+    if ($LASTEXITCODE -ne 0) {
+        throw "GUI dependency preflight failed. Use an official CPython 3.10+ interpreter with working OVITO/PySide6 imports, then rerun this script with -Python <path-to-python.exe>."
     }
 }
 
+function Set-IsolatedPythonBuildPath {
+    $pythonInfoJson = & $Python -c "import json, sys; print(json.dumps({'executable': sys.executable, 'prefix': sys.prefix, 'base_prefix': sys.base_prefix}))"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $pythonInfo = $pythonInfoJson | ConvertFrom-Json
+
+    $pathCandidates = @(
+        (Split-Path -Parent $pythonInfo.executable),
+        $pythonInfo.prefix,
+        (Join-Path $pythonInfo.prefix "Scripts"),
+        $pythonInfo.base_prefix,
+        (Join-Path $pythonInfo.base_prefix "Scripts"),
+        (Join-Path $env:SystemRoot "System32"),
+        $env:SystemRoot,
+        (Join-Path $env:SystemRoot "System32\Wbem"),
+        (Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0")
+    )
+
+    $isolatedPath = New-Object System.Collections.Generic.List[string]
+    foreach ($path in $pathCandidates) {
+        if ($path -and (Test-Path $path) -and -not $isolatedPath.Contains($path)) {
+            $isolatedPath.Add($path)
+        }
+    }
+
+    $env:PYTHONNOUSERSITE = "1"
+    Remove-Item Env:\PYTHONPATH -ErrorAction SilentlyContinue
+    $env:PATH = $isolatedPath -join [IO.Path]::PathSeparator
+    Write-Host "Using isolated Python build environment: $($pythonInfo.prefix)"
+}
+
 if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
-    throw "Windows GUI bundles must be built on Windows."
+    throw "Windows GUI executables must be built on Windows."
 }
 
 $scriptDir = Split-Path -Parent $PSCommandPath
@@ -42,6 +67,7 @@ $specPath = Join-Path $repoRoot "packaging\windows\ClayFF-Toolkit.spec"
 $bundleReadmePath = Join-Path $repoRoot "packaging\windows\README.txt"
 $distPath = Join-Path $repoRoot $DistDir
 $workPath = Join-Path $repoRoot $WorkDir
+$exePath = Join-Path $distPath "ClayFF-Toolkit.exe"
 
 if (-not (Test-Path $specPath)) {
     throw "PyInstaller spec not found: $specPath"
@@ -55,27 +81,42 @@ if (-not $SkipDependencyInstall) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
-$bundleDir = Join-Path $distPath "ClayFF-Toolkit"
-$exePath = Join-Path $bundleDir "ClayFF-Toolkit.exe"
+Set-IsolatedPythonBuildPath
+Assert-GuiDependenciesImport
+
+$legacyBundleDir = Join-Path $distPath "ClayFF-Toolkit"
+if (Test-Path $legacyBundleDir) {
+    Remove-Item $legacyBundleDir -Recurse -Force
+}
 
 & $Python -m PyInstaller --noconfirm --clean --distpath $distPath --workpath $workPath $specPath
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Assert-PathExists -Path $exePath -Description "bundled executable"
-Assert-AnyBundleFile -BundleDir $bundleDir -Filter "clayff.txt" -Description "ClayFF parameter resource"
-Assert-AnyBundleFile -BundleDir $bundleDir -Filter "qwindows.dll" -Description "Qt Windows platform plugin"
-Assert-AnyBundleFile -BundleDir $bundleDir -Filter "ovito*.pyd" -Description "OVITO Python extension"
+Assert-PathExists -Path $exePath -Description "standalone Windows executable"
 
-& $exePath --smoke-test
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-Copy-Item -Path $bundleReadmePath -Destination (Join-Path $bundleDir "README.txt") -Force
-
-$zipPath = Join-Path $distPath "ClayFF-Toolkit-Windows-x64.zip"
-if (Test-Path $zipPath) {
-    Remove-Item $zipPath -Force
+$smokeReportPath = Join-Path $workPath "ClayFF-Toolkit-smoke-test.txt"
+if (Test-Path $smokeReportPath) {
+    Remove-Item $smokeReportPath -Force
 }
-Compress-Archive -Path (Join-Path $distPath "ClayFF-Toolkit") -DestinationPath $zipPath
-Assert-PathExists -Path $zipPath -Description "Windows GUI bundle zip"
+$smokeExePath = $exePath
+$smokeWorkingDir = Split-Path -Parent $exePath
+if ($exePath.StartsWith("\\")) {
+    $localSmokeDir = Join-Path ([System.IO.Path]::GetTempPath()) "ClayFF-Toolkit-smoke-$([guid]::NewGuid().ToString('N'))"
+    New-Item -ItemType Directory -Force -Path $localSmokeDir | Out-Null
+    $smokeExePath = Join-Path $localSmokeDir "ClayFF-Toolkit.exe"
+    Copy-Item -Path $exePath -Destination $smokeExePath -Force
+    $smokeWorkingDir = $localSmokeDir
+}
+$env:CLAYFF_TOOLKIT_SMOKE_REPORT = $smokeReportPath
+try {
+    $smokeProcess = Start-Process -FilePath $smokeExePath -ArgumentList "--smoke-test" -WorkingDirectory $smokeWorkingDir -Wait -PassThru -WindowStyle Hidden
+}
+finally {
+    Remove-Item Env:\CLAYFF_TOOLKIT_SMOKE_REPORT -ErrorAction SilentlyContinue
+}
+if (Test-Path $smokeReportPath) {
+    Get-Content $smokeReportPath | ForEach-Object { Write-Host $_ }
+}
+if ($smokeProcess.ExitCode -ne 0) { exit $smokeProcess.ExitCode }
 
-Write-Host "Created Windows GUI bundle: $zipPath"
+Write-Host "Created Windows GUI executable: $exePath"

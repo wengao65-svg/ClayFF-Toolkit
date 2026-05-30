@@ -54,7 +54,7 @@ function Add-UserPathEntry {
 
 $scriptDir = Split-Path -Parent $PSCommandPath
 $repoRoot = Split-Path -Parent $scriptDir
-$pythonCommand = Resolve-PythonCommand -RequestedPython $Python
+$pythonCommand = @(Resolve-PythonCommand -RequestedPython $Python)
 
 if (-not $Venv) {
     $Venv = Join-Path $repoRoot ".venv"

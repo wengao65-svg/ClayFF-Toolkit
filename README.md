@@ -35,19 +35,17 @@ validation, and LAMMPS `.data` export.
 
 ## Install And Run
 
-For Windows GUI users, download `ClayFF-Toolkit-Windows-x64.zip` from the
-release or CI artifact, extract it, and double-click:
+For Windows GUI users, download `ClayFF-Toolkit.exe` from the release or CI
+artifact and double-click it:
 
 ```text
-ClayFF-Toolkit/ClayFF-Toolkit.exe
+ClayFF-Toolkit.exe
 ```
 
-Do not run the executable from inside the zip viewer; extract the whole
-`ClayFF-Toolkit` folder first. To verify the packaged GUI without opening the
-window, run:
+To verify the packaged GUI without opening the window, run:
 
 ```powershell
-.\ClayFF-Toolkit\ClayFF-Toolkit.exe --smoke-test
+.\ClayFF-Toolkit.exe --smoke-test
 ```
 
 For Linux users, install as a persistent user command:
