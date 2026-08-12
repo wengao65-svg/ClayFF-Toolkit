@@ -160,6 +160,31 @@ def test_rerunning_upstream_invalidates_previous_validation_data_file() -> None:
 
 
 @pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
+def test_visualizer_exports_material_studio_xsd(monkeypatch, tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    window = build_visualizer_window(
+        clayff_path=Path("src/clayff_toolkit/resources/clayff.txt"),
+    )
+    source = FIXTURES / "assignment_input" / "MMT_0W_rank3_d9.545.cif"
+    output = tmp_path / "assigned.xsd"
+    window._assignment_source_input.setText(str(source))
+    window._run_assignment_stage()
+    monkeypatch.setattr(
+        window.QFileDialog,
+        "getSaveFileName",
+        lambda *args, **kwargs: (str(output), "Materials Studio XSD (*.xsd)"),
+    )
+
+    window._export_material_studio_xsd()
+    app.processEvents()
+
+    assert output.exists()
+    assert window._state.output_xsd_path == output
+    assert "assigned.xsd" in window._ready_card.text()
+    window.close()
+
+
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
 def test_preview_uses_ovito_interactive_widget_when_available(monkeypatch) -> None:
     app = QApplication.instance() or QApplication([])
     if not visualization_app.supports_interactive_qwidget():

@@ -22,3 +22,4 @@ htmlcov/
 Clayff_Forcefield_Visualizer_Design_v4.docx
 tests/fixtures/assignment_input/*.substitution.json
 tests/fixtures/substitution_input/*.substitution.json
+test-temp/

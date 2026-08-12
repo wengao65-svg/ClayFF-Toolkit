@@ -3,12 +3,13 @@
 ## Package Layout
 
 - `src/clayff_toolkit/assignment`
-  - periodic structure loading from CIF and ASE-readable formats
+  - periodic structure loading from CIF, Materials Studio XSD, and ASE-readable formats
   - custom CIF-to-ASE bridge for warning-free triclinic handling
   - ClayFF parameter loading
   - atom-type assignment
   - mineral profile inference markers
   - LAMMPS data export
+  - Materials Studio XSD metadata-preserving patch and P1 document rebuild
 - `src/clayff_toolkit/substitution`
   - random layer and framework substitution engine migrated from the legacy
     prototype
@@ -26,6 +27,7 @@
 
 - CLI
   - `clayff-toolkit assign`
+  - `clayff-toolkit assign-ms`
   - `clayff-toolkit pipeline`
   - `clayff-toolkit workflow`
   - `clayff-toolkit charge`
@@ -34,6 +36,9 @@
 - Python API
   - `ToolkitPipeline`
   - `assign_file`
+  - `assign_material_studio_file`
+  - `load_material_studio_structure`
+  - `write_material_studio_xsd`
   - `calculate_net_charge`
   - `infer_mineral_profiles`
   - `validate_assigned_structure`

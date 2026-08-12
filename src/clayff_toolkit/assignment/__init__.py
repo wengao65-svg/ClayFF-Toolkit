@@ -10,6 +10,12 @@ from .cif import (
     structure_from_ase_atoms,
 )
 from .params import ClayFFParameters, load_clayff
+from .material_studio import (
+    MaterialStudioWriteResult,
+    assign_material_studio_file,
+    load_material_studio_structure,
+    write_material_studio_xsd,
+)
 from .profiles import (
     INTERLAYER_TYPES as PROFILE_INTERLAYER_TYPES,
     MineralProfile,
@@ -34,6 +40,7 @@ __all__ = [
     "CifStructure",
     "MineralProfile",
     "MineralProfileMatch",
+    "MaterialStudioWriteResult",
     "PROFILE_CATALOG",
     "PROFILE_INTERLAYER_TYPES",
     "StructureSummary",
@@ -41,11 +48,13 @@ __all__ = [
     "assignment_markers",
     "assign_file",
     "assign_loaded_structure",
+    "assign_material_studio_file",
     "assign_structure",
     "assign_structure_file",
     "assign_structure_to_path",
     "default_clayff_path",
     "load_ase_atoms",
+    "load_material_studio_structure",
     "load_structure",
     "load_clayff",
     "parse_cif",
@@ -53,4 +62,5 @@ __all__ = [
     "infer_mineral_profiles",
     "summarize_assignment",
     "summarize_structure",
+    "write_material_studio_xsd",
 ]

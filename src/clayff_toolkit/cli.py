@@ -8,6 +8,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from .assignment.material_studio import assign_material_studio_file
 from .assignment.service import assign_file, default_clayff_path
 from .pipeline import ToolkitPipeline
 from .substitution.engine import main as substitution_main
@@ -42,6 +43,29 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--clayff",
         default=str(default_clayff_path()),
         help="Path to ClayFF parameter file.",
+    )
+
+    assign_ms_parser = subparsers.add_parser(
+        "assign-ms",
+        help="Assign ClayFF types and export a Materials Studio XSD file.",
+    )
+    assign_ms_parser.add_argument("input", help="Input periodic structure or XSD file.")
+    assign_ms_parser.add_argument("output", help="Output Materials Studio .xsd file.")
+    assign_ms_parser.add_argument(
+        "--clayff",
+        default=str(default_clayff_path()),
+        help="Path to ClayFF parameter file.",
+    )
+    assign_ms_parser.add_argument(
+        "--topology-conflict",
+        choices=["rebuild", "error"],
+        default="rebuild",
+        help="How to handle an input XSD whose topology differs from ClayFF.",
+    )
+    assign_ms_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Allow replacing an existing output XSD.",
     )
 
     pipeline_parser = subparsers.add_parser("pipeline", help="Run assignment followed by charge validation.")
@@ -154,6 +178,20 @@ def main(argv: list[str] | None = None) -> int:
         input_path = Path(args.input)
         output_path = _resolve_output_path(input_path, Path(args.output))
         print(assign_file(input_path, output_path, args.clayff))
+        return 0
+
+    if args.command == "assign-ms":
+        result = assign_material_studio_file(
+            args.input,
+            args.output,
+            args.clayff,
+            topology_conflict=args.topology_conflict,
+            overwrite=args.overwrite,
+        )
+        print(result.path)
+        print(f"mode={result.mode}")
+        print(f"atoms={result.atom_count}")
+        print(f"bonds={result.bond_count}")
         return 0
 
     if args.command == "pipeline":

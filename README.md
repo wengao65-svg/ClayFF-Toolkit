@@ -1,7 +1,7 @@
 # ClayFF-Toolkit
 
 Unified toolkit for clay isomorphic substitution, ClayFF assignment, charge
-validation, and LAMMPS `.data` export.
+validation, LAMMPS `.data` export, and Materials Studio `.xsd` export.
 
 ## Planned workflow
 
@@ -14,6 +14,8 @@ validation, and LAMMPS `.data` export.
 ## Current capabilities
 
 - ClayFF assignment from periodic `cif` and periodic `xyz/extxyz` structures
+- ClayFF assignment from Materials Studio `xsd` structures and export of
+  Forcite-ready P1 `xsd` files with ClayFF types, charges, and H-O topology
 - Random tetrahedral/octahedral substitution workflows migrated from the legacy
   prototype
 - One-shot workflow entrypoint for:
@@ -84,6 +86,8 @@ Run:
 
 ```bash
 clayff-toolkit assign input.cif output.data
+clayff-toolkit assign-ms input.cif output_clayff.xsd
+clayff-toolkit assign-ms input.xsd output_clayff.xsd
 clayff-toolkit workflow input.cif substituted.cif output.data --preset octa-only --interlayer Ca
 clayff-toolkit charge output.data
 clayff-toolkit doctor --gui

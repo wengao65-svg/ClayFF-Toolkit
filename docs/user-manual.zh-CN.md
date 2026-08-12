@@ -65,12 +65,14 @@
 当前推荐输入格式：
 
 - `cif`
+- `xsd`（ClayFF 力场赋予与导出）
 - `xyz`
 - `extxyz`
 
 其他由 ASE 支持的结构格式也可能可用，但当前回归验证主要覆盖：
 
 - `cif`
+- Materials Studio P1 `xsd`
 - 周期性 `xyz/extxyz`
 
 ## 4. 安装
@@ -176,7 +178,24 @@ clayff-toolkit pipeline input.cif output.data
 - 写出的 `.data` 文件路径
 - `net_charge=...`
 
-### 5.3 一步完成“同晶置换 -> 分配 -> 校验 -> 导出”
+### 5.3 导出 Materials Studio XSD
+
+从 CIF、XYZ 或已有 XSD 赋予 ClayFF，并输出 Materials Studio 文件：
+
+```bash
+clayff-toolkit assign-ms input.cif input_clayff.xsd
+clayff-toolkit assign-ms input.xsd input_clayff.xsd
+```
+
+已有 XSD 的基元原子和 H-O 拓扑与赋予结果一致时，程序只更新
+`ForcefieldType` 和 `Charge`，保留原有 ID、周期映射、显示属性和其他未知元数据。
+拓扑不一致时，默认根据结构重建干净的 P1 XSD。
+
+输出文件包含 ClayFF 类型、电荷以及羟基和水分子的 H-O 键。要在 Forcite
+中计算，仍需在 Materials Studio 中安装或选择与这些类型匹配的私有
+`clayff.off`。该 OFF 文件不随 ClayFF-Toolkit 分发。
+
+### 5.4 一步完成“同晶置换 -> 分配 -> 校验 -> 导出”
 
 这是当前最推荐的单命令工作流：
 
@@ -190,7 +209,7 @@ clayff-toolkit workflow input.cif substituted.cif output.data --preset octa-only
 2. 导出的 `.data` 文件路径
 3. `net_charge=...`
 
-### 5.4 单独检查已有 `data` 文件的净电荷
+### 5.5 单独检查已有 `data` 文件的净电荷
 
 ```bash
 clayff-toolkit charge output.data
@@ -198,7 +217,7 @@ clayff-toolkit charge output.data
 
 返回值是净电荷数值。
 
-### 5.5 启动 GUI
+### 5.6 启动 GUI
 
 ```bash
 clayff-toolkit visualize
@@ -242,7 +261,28 @@ clayff-toolkit assign <输入结构> <输出data>
 clayff-toolkit pipeline <输入结构> <输出data>
 ```
 
-### 6.3 `workflow`
+### 6.3 `assign-ms`
+
+用途：
+
+- 对周期 CIF、XYZ 或 Materials Studio XSD 执行 ClayFF 分配
+- 输出可供 Materials Studio 打开和 Forcite 参数检查的 P1 XSD
+
+基本格式：
+
+```bash
+clayff-toolkit assign-ms <输入结构> <输出xsd> [选项]
+```
+
+选项：
+
+- `--clayff <路径>`：ClayFF 参数文件
+- `--topology-conflict rebuild|error`：XSD 拓扑冲突时重建或报错
+- `--overwrite`：允许覆盖已有输出文件
+
+默认不会覆盖已有文件。推荐输出为 `<输入名>_clayff.xsd`。
+
+### 6.4 `workflow`
 
 用途：
 
@@ -273,7 +313,7 @@ clayff-toolkit workflow \
   --interlayer Ca
 ```
 
-### 6.4 `substitute`
+### 6.5 `substitute`
 
 用途：
 
@@ -284,7 +324,7 @@ clayff-toolkit workflow \
 - 这个入口保留了 legacy substitution engine 的参数风格。
 - 如果你只想完成标准单结构工作流，优先使用 `workflow`。
 
-### 6.5 `visualize`
+### 6.6 `visualize`
 
 用途：
 
@@ -422,7 +462,7 @@ clayff-toolkit workflow \
 
 这个面板现在面向最终导出的 `data` 文件，而不是原始结构。
 
-### 7.7 Forcefield Catalog 页
+### 7.9 Forcefield Catalog 页
 
 该页展示当前 ClayFF 参数文件中的类型表，包含：
 
@@ -438,7 +478,7 @@ clayff-toolkit workflow \
 - 检查某个类型是否在参数表内
 - 交叉核对电荷和非键参数
 
-### 7.8 Data Preview 页
+### 7.10 Data Preview 页
 
 在导出后或手动载入 `.data` 文件后，界面会显示：
 
@@ -486,6 +526,14 @@ clayff-toolkit workflow \
 - `Atoms # full`
 - `Bonds`（如有）
 - `Angles`（如有）
+
+### 8.4 Materials Studio XSD
+
+GUI 的“力场赋予”页面可读取 `.xsd`，并通过“导出 Material Studio XSD”
+生成新文件。程序不会覆盖输入 XSD，除非用户明确选择相同路径并确认保存。
+
+首版仅支持包含全部显式原子的三维周期 P1 XSD。非 P1 对称结构应先在
+Materials Studio 中展开为 P1，再交给工具包赋型。
 
 ## 9. 常见工作流建议
 

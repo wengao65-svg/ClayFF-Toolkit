@@ -16,6 +16,7 @@ from ..assignment import (
     load_structure,
     summarize_assignment,
     summarize_structure,
+    write_material_studio_xsd,
 )
 from ..assignment.lammps_writer import write_lammps_data
 from ..assignment.params import ClayFFParameters
@@ -236,6 +237,7 @@ class WorkflowState:
     substituted_structure_path: Path | None = None
     assignment_source_path: Path | None = None
     output_data_path: Path | None = None
+    output_xsd_path: Path | None = None
     structure: CifStructure | None = None
     assigned: AssignedStructure | None = None
     forcefield: ClayFFParameters | None = None
@@ -602,6 +604,9 @@ class ClayFFWizardWindow:
         export_from_assignment = self.QPushButton("导出当前 data")
         export_from_assignment.setObjectName("GhostAction")
         export_from_assignment.clicked.connect(self._export_data)
+        export_xsd = self.QPushButton("导出 Material Studio XSD")
+        export_xsd.setObjectName("GhostAction")
+        export_xsd.clicked.connect(self._export_material_studio_xsd)
         run_button = self.QPushButton("运行力场赋予")
         run_button.setObjectName("PrimaryAction")
         run_button.clicked.connect(self._run_assignment_stage)
@@ -620,6 +625,7 @@ class ClayFFWizardWindow:
 
         action_row = self.QHBoxLayout()
         action_row.addWidget(export_from_assignment)
+        action_row.addWidget(export_xsd)
         action_row.addWidget(run_button)
         action_row.addWidget(next_button)
         action_row.addStretch(1)
@@ -772,8 +778,14 @@ class ClayFFWizardWindow:
             return None
         return source_path.with_suffix(".data")
 
+    def _default_xsd_output_path(self, source_path: Path | None) -> Path | None:
+        if source_path is None:
+            return None
+        return source_path.with_name(f"{source_path.stem}_clayff.xsd")
+
     def _invalidate_downstream_data_state(self, source_path: Path | None = None):
         self._state.output_data_path = None
+        self._state.output_xsd_path = None
         self._state.data_validation_report = None
         if hasattr(self, "_validation_data_input"):
             self._validation_data_input.clear()
@@ -820,7 +832,7 @@ class ClayFFWizardWindow:
             self._window,
             "选择赋予用结构",
             "",
-            "Structures (*.cif *.xyz *.extxyz *.vasp *.poscar *.contcar *.res);;All Files (*)",
+            "Structures (*.cif *.xsd *.xyz *.extxyz *.vasp *.poscar *.contcar *.res);;All Files (*)",
         )
         if path:
             self._assignment_source_input.setText(path)
@@ -1040,6 +1052,38 @@ class ClayFFWizardWindow:
         self._state.output_data_path = output_path
         self._populate_export_preview(output_path)
         self._ready_card.setText(f"Ready\n已导出: {output_path.name}")
+
+    def _export_material_studio_xsd(self):
+        if self._state.assigned is None or self._state.structure is None:
+            self.QMessageBox.warning(self._window, "无法导出", "请先完成力场赋予。")
+            return
+        source_path = self._state.assignment_source_path
+        suggested = self._default_xsd_output_path(source_path)
+        path, _ = self.QFileDialog.getSaveFileName(
+            self._window,
+            "导出 Material Studio XSD",
+            str(suggested) if suggested is not None else "",
+            "Materials Studio XSD (*.xsd)",
+        )
+        if not path:
+            return
+        output_path = Path(path)
+        source_xsd = source_path if source_path and source_path.suffix.lower() == ".xsd" else None
+        try:
+            result = write_material_studio_xsd(
+                self._state.structure,
+                self._state.assigned,
+                output_path,
+                source_xsd=source_xsd,
+                topology_conflict="rebuild",
+                overwrite=True,
+            )
+        except Exception as exc:
+            self.QMessageBox.critical(self._window, "XSD 导出失败", str(exc))
+            return
+        self._state.output_xsd_path = result.path
+        mode_text = "保留原 XSD 元数据" if result.mode == "patched" else "重建 P1 XSD"
+        self._ready_card.setText(f"Ready\n已导出 {result.path.name}\n{mode_text}")
 
     def _load_existing_data(self):
         path, _ = self.QFileDialog.getOpenFileName(

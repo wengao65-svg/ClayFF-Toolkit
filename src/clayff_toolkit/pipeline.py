@@ -10,6 +10,7 @@ from .assignment.service import assign_file
 from .substitution import run_substitution_case
 from .validation import ValidationReport, calculate_net_charge, validate_assigned_structure
 from .assignment import assign_structure_file
+from .assignment.material_studio import MaterialStudioWriteResult, assign_material_studio_file
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,23 @@ class ToolkitPipeline:
             output_path=written,
             net_charge=calculate_net_charge(written),
             validation_report=validate_assigned_structure(assigned),
+        )
+
+    def assign_material_studio(
+        self,
+        input_path: str | Path,
+        output_path: str | Path,
+        clayff_path: str | Path | None = None,
+        *,
+        topology_conflict: str = "rebuild",
+        overwrite: bool = False,
+    ) -> MaterialStudioWriteResult:
+        return assign_material_studio_file(
+            input_path,
+            output_path,
+            clayff_path,
+            topology_conflict=topology_conflict,
+            overwrite=overwrite,
         )
 
     def substitute_assign_validate(

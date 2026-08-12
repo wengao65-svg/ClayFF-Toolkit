@@ -12,6 +12,17 @@ def test_doctor_command_is_registered() -> None:
     assert args.gui is True
 
 
+def test_material_studio_assignment_command_is_registered() -> None:
+    parser = build_argument_parser()
+
+    args = parser.parse_args(
+        ["assign-ms", "input.cif", "output.xsd", "--topology-conflict", "error"]
+    )
+
+    assert args.command == "assign-ms"
+    assert args.topology_conflict == "error"
+
+
 def test_doctor_report_without_gui_is_successful() -> None:
     exit_code, lines = build_doctor_report()
 

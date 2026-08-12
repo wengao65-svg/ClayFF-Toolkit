@@ -247,6 +247,10 @@ def load_ase_atoms(path: str | Path) -> Atoms:
     structure_path = Path(path)
     if structure_path.suffix.lower() == ".cif":
         return ase_atoms_from_structure(parse_cif(structure_path))
+    if structure_path.suffix.lower() == ".xsd":
+        from .material_studio import load_material_studio_structure
+
+        return ase_atoms_from_structure(load_material_studio_structure(structure_path))
     return ase_read(structure_path)
 
 
@@ -254,5 +258,9 @@ def load_structure(path: str | Path) -> CifStructure:
     structure_path = Path(path)
     if structure_path.suffix.lower() == ".cif":
         return parse_cif(structure_path)
+    if structure_path.suffix.lower() == ".xsd":
+        from .material_studio import load_material_studio_structure
+
+        return load_material_studio_structure(structure_path)
     atoms = load_ase_atoms(structure_path)
     return structure_from_ase_atoms(atoms, structure_path)
