@@ -16,6 +16,13 @@ from .material_studio import (
     load_material_studio_structure,
     write_material_studio_xsd,
 )
+from .material_studio_off import (
+    MaterialStudioOffAuditIssue,
+    MaterialStudioOffAuditReport,
+    MaterialStudioOffDocument,
+    audit_material_studio_off,
+    load_material_studio_off,
+)
 from .profiles import (
     INTERLAYER_TYPES as PROFILE_INTERLAYER_TYPES,
     MineralProfile,
@@ -41,11 +48,15 @@ __all__ = [
     "MineralProfile",
     "MineralProfileMatch",
     "MaterialStudioWriteResult",
+    "MaterialStudioOffAuditIssue",
+    "MaterialStudioOffAuditReport",
+    "MaterialStudioOffDocument",
     "PROFILE_CATALOG",
     "PROFILE_INTERLAYER_TYPES",
     "StructureSummary",
     "ase_atoms_from_structure",
     "assignment_markers",
+    "audit_material_studio_off",
     "assign_file",
     "assign_loaded_structure",
     "assign_material_studio_file",
@@ -55,6 +66,7 @@ __all__ = [
     "default_clayff_path",
     "load_ase_atoms",
     "load_material_studio_structure",
+    "load_material_studio_off",
     "load_structure",
     "load_clayff",
     "parse_cif",

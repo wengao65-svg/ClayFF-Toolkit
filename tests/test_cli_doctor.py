@@ -23,6 +23,17 @@ def test_material_studio_assignment_command_is_registered() -> None:
     assert args.topology_conflict == "error"
 
 
+def test_material_studio_off_audit_and_gui_page_are_registered() -> None:
+    parser = build_argument_parser()
+
+    audit_args = parser.parse_args(["audit-ms-off", "clayff.off"])
+    gui_args = parser.parse_args(["visualize", "--page", "materials-studio"])
+
+    assert audit_args.command == "audit-ms-off"
+    assert audit_args.input == "clayff.off"
+    assert gui_args.page == "materials-studio"
+
+
 def test_doctor_report_without_gui_is_successful() -> None:
     exit_code, lines = build_doctor_report()
 

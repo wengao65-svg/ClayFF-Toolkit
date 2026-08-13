@@ -26,6 +26,7 @@ def test_pyinstaller_spec_targets_gui_launcher_and_onefile_executable() -> None:
     assert "ovito/plugins" in spec
     assert "shiboken6" in spec
     assert "collect_submodules(package_name)" in spec
+    assert (REPO_ROOT / "src" / "clayff_toolkit" / "assignment" / "material_studio_off.py").exists()
 
 
 def test_windows_gui_build_script_builds_single_executable() -> None:
@@ -61,6 +62,8 @@ def test_ci_builds_and_uploads_windows_gui_executable() -> None:
     assert "dist/ClayFF-Toolkit.exe" in workflow
     assert "ZipFile]::OpenRead" not in workflow
     assert "--smoke-test" in workflow
+    assert "tests/test_material_studio_xsd.py" in workflow
+    assert "tests/test_material_studio_off.py" in workflow
 
 
 def test_release_workflow_builds_and_attaches_windows_executable() -> None:
@@ -82,3 +85,5 @@ def test_windows_bundle_readme_guides_gui_users() -> None:
     assert "--smoke-test" in readme
     assert "%LOCALAPPDATA%\\ClayFF-Toolkit\\logs" in readme
     assert "bundled in the executable" in readme
+    assert "Materials Studio workspace" in readme
+    assert "Private OFF files are not bundled" in readme

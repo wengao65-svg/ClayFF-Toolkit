@@ -16,14 +16,14 @@ validation, LAMMPS `.data` export, and Materials Studio `.xsd` export.
 - ClayFF assignment from periodic `cif` and periodic `xyz/extxyz` structures
 - ClayFF assignment from Materials Studio `xsd` structures and export of
   Forcite-ready P1 `xsd` files with ClayFF types, charges, and H-O topology
+- Materials Studio `off` parsing and consistency auditing against the active
+  ClayFF/LAMMPS parameter source
 - Random tetrahedral/octahedral substitution workflows migrated from the legacy
   prototype
 - One-shot workflow entrypoint for:
   substitution -> assignment -> charge validation -> LAMMPS data export
-- PySide6 + OVITO wizard GUI for:
-  independent substitution, assignment, and validation pages with next-step
-  navigation, OVITO default structure rendering in the substitution stage,
-  local-environment inspection, and export review
+- PySide6 + OVITO workbench with independent substitution, assignment,
+  validation, and Materials Studio workspaces
 - Mineral profile inference and validation reporting for:
   montmorillonite, beidellite, mica, and kaolinite-like assignments
 - Visual overlay modes for:
@@ -54,6 +54,15 @@ For Linux users, install as a persistent user command:
 
 ```bash
 bash scripts/install-clayff-toolkit.sh
+```
+
+The Linux installer creates both `clayff-toolkit` and
+`clayff-toolkit-gui`, plus a user application-menu entry. Start the full GUI
+or open the Materials Studio workspace directly with:
+
+```bash
+clayff-toolkit-gui
+clayff-toolkit-gui --page materials-studio
 ```
 
 For Windows developers or command-line users who prefer a Python environment,
@@ -88,11 +97,17 @@ Run:
 clayff-toolkit assign input.cif output.data
 clayff-toolkit assign-ms input.cif output_clayff.xsd
 clayff-toolkit assign-ms input.xsd output_clayff.xsd
+clayff-toolkit audit-ms-off clayff.off --clayff clayff.frc
 clayff-toolkit workflow input.cif substituted.cif output.data --preset octa-only --interlayer Ca
 clayff-toolkit charge output.data
 clayff-toolkit doctor --gui
 clayff-toolkit visualize
+clayff-toolkit visualize --page materials-studio
 ```
+
+Private Materials Studio force-field files are not distributed. The
+repository keeps `test-temp/` ignored; OFF auditing operates on a file chosen
+by the user.
 
 On Debian/Ubuntu, if GUI Chinese text renders as boxes, install fallback fonts:
 

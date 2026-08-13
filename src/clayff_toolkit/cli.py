@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from .assignment.material_studio import assign_material_studio_file
+from .assignment.material_studio_off import audit_material_studio_off
 from .assignment.service import assign_file, default_clayff_path
 from .pipeline import ToolkitPipeline
 from .substitution.engine import main as substitution_main
@@ -68,6 +69,17 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Allow replacing an existing output XSD.",
     )
 
+    audit_ms_off_parser = subparsers.add_parser(
+        "audit-ms-off",
+        help="Audit a Materials Studio OFF file against ClayFF parameters.",
+    )
+    audit_ms_off_parser.add_argument("input", help="Input Materials Studio .off file.")
+    audit_ms_off_parser.add_argument(
+        "--clayff",
+        default=str(default_clayff_path()),
+        help="Path to ClayFF parameter file.",
+    )
+
     pipeline_parser = subparsers.add_parser("pipeline", help="Run assignment followed by charge validation.")
     pipeline_parser.add_argument("input", help="Input CIF file.")
     pipeline_parser.add_argument("output", help="Output data file or directory.")
@@ -114,6 +126,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     visualize_parser = subparsers.add_parser("visualize", help="Launch the PyQt visualizer.")
     visualize_parser.add_argument("--clayff", help="Optional ClayFF parameter file path.")
     visualize_parser.add_argument("--data", help="Optional LAMMPS data file path.")
+    visualize_parser.add_argument(
+        "--page",
+        choices=["substitution", "assignment", "validation", "materials-studio"],
+        default="substitution",
+        help="Initial GUI workspace.",
+    )
 
     doctor_parser = subparsers.add_parser("doctor", help="Check the current ClayFF-Toolkit environment.")
     doctor_parser.add_argument("--gui", action="store_true", help="Also check GUI dependencies.")
@@ -194,6 +212,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"bonds={result.bond_count}")
         return 0
 
+    if args.command == "audit-ms-off":
+        report = audit_material_studio_off(args.input, args.clayff)
+        print(f"off={report.off_path}")
+        print(f"clayff={report.clayff_path}")
+        print(f"atom_types={report.atom_type_count}/{report.expected_atom_type_count}")
+        print(f"bonds={report.bond_count}")
+        print(f"angles={report.angle_count}")
+        print(f"errors={report.error_count}")
+        print(f"warnings={report.warning_count}")
+        for issue in report.issues:
+            print(f"{issue.severity}:{issue.code}:{issue.message}")
+        return 0 if report.is_valid else 1
+
     if args.command == "pipeline":
         input_path = Path(args.input)
         output_path = _resolve_output_path(input_path, Path(args.output))
@@ -223,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "visualize":
-        return launch_visualizer(args.clayff, args.data)
+        return launch_visualizer(args.clayff, args.data, initial_page=args.page)
 
     if args.command == "doctor":
         exit_code, lines = build_doctor_report(require_gui=args.gui)

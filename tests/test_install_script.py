@@ -105,6 +105,23 @@ def test_install_script_creates_launcher_and_persistent_path(tmp_path: Path) -> 
         assert f'export PATH="{bin_dir}:$PATH"' in rc_text
 
 
+def test_install_script_creates_linux_gui_launcher_and_desktop_entry(tmp_path: Path) -> None:
+    home, bin_dir, venv_dir, log_path = _run_installer(tmp_path)
+
+    gui_launcher = bin_dir / "clayff-toolkit-gui"
+    desktop_entry = home / ".local" / "share" / "applications" / "ClayFF-Toolkit.desktop"
+    assert gui_launcher.exists()
+    assert os.access(gui_launcher, os.X_OK)
+    assert f'exec "{venv_dir}/bin/python" -m clayff_toolkit.gui_launcher "$@"' in gui_launcher.read_text(encoding="utf-8")
+    assert desktop_entry.exists()
+    assert f'Exec="{gui_launcher}"' in desktop_entry.read_text(encoding="utf-8")
+
+    env = os.environ.copy()
+    env["FAKE_PYTHON_LOG"] = str(log_path)
+    subprocess.run([str(gui_launcher), "--page", "materials-studio"], check=True, env=env)
+    assert "-m clayff_toolkit.gui_launcher --page materials-studio" in log_path.read_text(encoding="utf-8")
+
+
 def test_install_script_is_idempotent_for_shell_path_block(tmp_path: Path) -> None:
     home, _, _, _ = _run_installer(tmp_path, "--no-gui")
     _run_installer(tmp_path, "--no-gui")

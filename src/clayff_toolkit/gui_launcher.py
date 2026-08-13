@@ -121,6 +121,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--clayff", help="Optional ClayFF parameter file path.")
     parser.add_argument("--data", help="Optional LAMMPS data file path.")
     parser.add_argument(
+        "--page",
+        choices=["substitution", "assignment", "validation", "materials-studio"],
+        default="substitution",
+        help="Initial GUI workspace.",
+    )
+    parser.add_argument(
         "--smoke-test",
         action="store_true",
         help="Check packaged GUI dependencies without opening the window.",
@@ -144,7 +150,9 @@ def main(argv: list[str] | None = None) -> int:
             print("\n".join(lines))
             return exit_code
 
-        return launch_visualizer(args.clayff, args.data)
+        if args.page == "substitution":
+            return launch_visualizer(args.clayff, args.data)
+        return launch_visualizer(args.clayff, args.data, initial_page=args.page)
     except Exception as exc:
         log_path = write_crash_log(exc)
         print(f"ClayFF-Toolkit GUI failed to start. Details were written to: {log_path}", file=sys.stderr)

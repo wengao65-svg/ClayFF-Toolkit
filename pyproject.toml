@@ -25,6 +25,9 @@ gui = [
 [project.scripts]
 clayff-toolkit = "clayff_toolkit.cli:main"
 
+[project.gui-scripts]
+clayff-toolkit-gui = "clayff_toolkit.gui_launcher:main"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 include-package-data = true

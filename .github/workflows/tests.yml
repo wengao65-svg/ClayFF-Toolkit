@@ -21,7 +21,9 @@ jobs:
           python -m pytest \
             tests/test_install_script.py \
             tests/test_windows_install_script.py \
-            tests/test_cli_doctor.py
+            tests/test_cli_doctor.py \
+            tests/test_material_studio_xsd.py \
+            tests/test_material_studio_off.py
       - name: Check CLI diagnostics
         run: python -m clayff_toolkit doctor
 

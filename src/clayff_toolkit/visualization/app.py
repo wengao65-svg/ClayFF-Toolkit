@@ -9,14 +9,15 @@ from typing import Any
 from ..assignment import (
     AssignedStructure,
     CifStructure,
-    assign_file,
+    MaterialStudioOffAuditReport,
+    assign_material_studio_file,
     assign_structure_file,
+    audit_material_studio_off,
     default_clayff_path,
     load_clayff,
     load_structure,
     summarize_assignment,
     summarize_structure,
-    write_material_studio_xsd,
 )
 from ..assignment.lammps_writer import write_lammps_data
 from ..assignment.params import ClayFFParameters
@@ -48,10 +49,10 @@ def _qt_imports():
         QPixmap = QtGui.QPixmap
         QApplication = QtWidgets.QApplication
         QComboBox = QtWidgets.QComboBox
+        QCheckBox = QtWidgets.QCheckBox
         QFileDialog = QtWidgets.QFileDialog
         QFrame = QtWidgets.QFrame
         QGridLayout = QtWidgets.QGridLayout
-        QGroupBox = QtWidgets.QGroupBox
         QHBoxLayout = QtWidgets.QHBoxLayout
         QHeaderView = QtWidgets.QHeaderView
         QLabel = QtWidgets.QLabel
@@ -60,6 +61,7 @@ def _qt_imports():
         QMessageBox = QtWidgets.QMessageBox
         QPushButton = QtWidgets.QPushButton
         QSpinBox = QtWidgets.QSpinBox
+        QScrollArea = QtWidgets.QScrollArea
         QStackedWidget = QtWidgets.QStackedWidget
         QTableWidget = QtWidgets.QTableWidget
         QTableWidgetItem = QtWidgets.QTableWidgetItem
@@ -75,12 +77,12 @@ def _qt_imports():
     return {
         "QApplication": QApplication,
         "QComboBox": QComboBox,
+        "QCheckBox": QCheckBox,
         "QFileDialog": QFileDialog,
         "QFrame": QFrame,
         "QFont": QFont,
         "QFontDatabase": QFontDatabase,
         "QGridLayout": QGridLayout,
-        "QGroupBox": QGroupBox,
         "QHBoxLayout": QHBoxLayout,
         "QHeaderView": QHeaderView,
         "QLabel": QLabel,
@@ -90,6 +92,7 @@ def _qt_imports():
         "QPixmap": QPixmap,
         "QPushButton": QPushButton,
         "QSpinBox": QSpinBox,
+        "QScrollArea": QScrollArea,
         "QStackedWidget": QStackedWidget,
         "QTableWidget": QTableWidget,
         "QTableWidgetItem": QTableWidgetItem,
@@ -244,16 +247,7 @@ class WorkflowState:
     substitution_log: dict[str, Any] | None = None
     validation_report: ValidationReport | None = None
     data_validation_report: DataValidationReport | None = None
-
-
-def _warning_atom_indices(report: ValidationReport | None) -> set[int]:
-    if report is None:
-        return set()
-    return {
-        atom_index
-        for warning in report.warnings
-        for atom_index in warning.atom_indices
-    }
+    material_studio_off_report: MaterialStudioOffAuditReport | None = None
 
 
 def _neighbor_indices(structure: CifStructure, selected_index: int | None) -> list[int]:
@@ -297,7 +291,6 @@ class _PreviewPanel:
         self.caption = QLabel("Load or generate a structure to render.")
         self.caption.setWordWrap(True)
         self.render_size = DEFAULT_RENDER_SIZE
-        self.projected_points = None
         self.preview_scene = None
         self.uses_ovito_widget = False
         self.backend = "empty"
@@ -353,15 +346,27 @@ class _PreviewPanel:
 
 
 class ClayFFWizardWindow:
-    def __init__(self, clayff_path: str | Path | None = None, data_path: str | Path | None = None):
+    PAGE_INDEX = {
+        "substitution": 0,
+        "assignment": 1,
+        "validation": 2,
+        "materials-studio": 3,
+    }
+
+    def __init__(
+        self,
+        clayff_path: str | Path | None = None,
+        data_path: str | Path | None = None,
+        initial_page: str = "substitution",
+    ):
         qt = _qt_imports()
         self.qt = qt
         self.QApplication = qt["QApplication"]
+        self.QCheckBox = qt["QCheckBox"]
         self.QComboBox = qt["QComboBox"]
         self.QFileDialog = qt["QFileDialog"]
         self.QFrame = qt["QFrame"]
         self.QGridLayout = qt["QGridLayout"]
-        self.QGroupBox = qt["QGroupBox"]
         self.QHBoxLayout = qt["QHBoxLayout"]
         self.QHeaderView = qt["QHeaderView"]
         self.QLabel = qt["QLabel"]
@@ -371,6 +376,7 @@ class ClayFFWizardWindow:
         self.QPixmap = qt["QPixmap"]
         self.QPushButton = qt["QPushButton"]
         self.QSpinBox = qt["QSpinBox"]
+        self.QScrollArea = qt["QScrollArea"]
         self.QStackedWidget = qt["QStackedWidget"]
         self.QTableWidget = qt["QTableWidget"]
         self.QTableWidgetItem = qt["QTableWidgetItem"]
@@ -399,6 +405,7 @@ class ClayFFWizardWindow:
         self._load_forcefield(self._state.clayff_path)
         if self._last_data_path:
             self._populate_export_preview(self._last_data_path)
+        self._go_to_step(self.PAGE_INDEX.get(initial_page, 0))
 
     def __getattr__(self, name: str):
         return getattr(self._window, name)
@@ -455,6 +462,7 @@ class ClayFFWizardWindow:
             ("1", "同晶替换", "生成替换后结构"),
             ("2", "力场赋予", "分配 ClayFF 类型与电荷"),
             ("3", "力场校验", "检查 profile、告警并导出"),
+            ("MS", "Materials Studio", "XSD 赋型与 OFF 审计"),
         ]
         for index, (_num, title, desc) in enumerate(steps):
             button = self.QPushButton(f"{title}\n{desc}")
@@ -491,8 +499,13 @@ class ClayFFWizardWindow:
         self._build_substitution_page()
         self._build_assignment_page()
         self._build_validation_page()
+        self._build_materials_studio_page()
 
-        layout.addWidget(self._step_stack, 1)
+        self._content_scroll = self.QScrollArea()
+        self._content_scroll.setWidgetResizable(True)
+        self._content_scroll.setFrameShape(self.QFrame.Shape.NoFrame)
+        self._content_scroll.setWidget(self._step_stack)
+        layout.addWidget(self._content_scroll, 1)
         content.setLayout(layout)
         return content
 
@@ -604,9 +617,9 @@ class ClayFFWizardWindow:
         export_from_assignment = self.QPushButton("导出当前 data")
         export_from_assignment.setObjectName("GhostAction")
         export_from_assignment.clicked.connect(self._export_data)
-        export_xsd = self.QPushButton("导出 Material Studio XSD")
+        export_xsd = self.QPushButton("Materials Studio 模式")
         export_xsd.setObjectName("GhostAction")
-        export_xsd.clicked.connect(self._export_material_studio_xsd)
+        export_xsd.clicked.connect(self._open_materials_studio_from_assignment)
         run_button = self.QPushButton("运行力场赋予")
         run_button.setObjectName("PrimaryAction")
         run_button.clicked.connect(self._run_assignment_stage)
@@ -738,6 +751,97 @@ class ClayFFWizardWindow:
         page.setLayout(layout)
         self._step_stack.addWidget(page)
 
+    def _build_materials_studio_page(self):
+        page = self.QWidget()
+        layout = self.QVBoxLayout()
+        layout.setSpacing(18)
+
+        xsd_card, xsd_layout = self._make_card("Materials Studio XSD ClayFF 赋型")
+        xsd_form = self.QGridLayout()
+        xsd_form.setHorizontalSpacing(12)
+        xsd_form.setVerticalSpacing(12)
+
+        self._ms_structure_input = self.QLineEdit()
+        self._ms_xsd_output_input = self.QLineEdit()
+        self._ms_clayff_input = self.QLineEdit(str(self._state.clayff_path))
+        self._ms_topology_policy = self.QComboBox()
+        self._ms_topology_policy.addItem("拓扑冲突时重建", "rebuild")
+        self._ms_topology_policy.addItem("拓扑冲突时报错", "error")
+        self._ms_overwrite = self.QCheckBox("允许覆盖已有输出文件")
+
+        choose_structure = self.QPushButton("选择结构")
+        choose_structure.setObjectName("GhostAction")
+        choose_structure.clicked.connect(self._choose_ms_structure)
+        choose_xsd_output = self.QPushButton("输出 XSD")
+        choose_xsd_output.setObjectName("GhostAction")
+        choose_xsd_output.clicked.connect(self._choose_ms_xsd_output)
+        choose_ms_clayff = self.QPushButton("ClayFF 文件")
+        choose_ms_clayff.setObjectName("GhostAction")
+        choose_ms_clayff.clicked.connect(self._choose_ms_clayff)
+        run_xsd = self.QPushButton("赋予 ClayFF 并导出 XSD")
+        run_xsd.setObjectName("PrimaryAction")
+        run_xsd.clicked.connect(self._run_material_studio_assignment)
+
+        xsd_form.addWidget(self.QLabel("输入结构"), 0, 0)
+        xsd_form.addWidget(self._ms_structure_input, 0, 1)
+        xsd_form.addWidget(choose_structure, 0, 2)
+        xsd_form.addWidget(self.QLabel("输出 XSD"), 1, 0)
+        xsd_form.addWidget(self._ms_xsd_output_input, 1, 1)
+        xsd_form.addWidget(choose_xsd_output, 1, 2)
+        xsd_form.addWidget(self.QLabel("ClayFF 参数"), 2, 0)
+        xsd_form.addWidget(self._ms_clayff_input, 2, 1)
+        xsd_form.addWidget(choose_ms_clayff, 2, 2)
+        xsd_form.addWidget(self.QLabel("拓扑策略"), 3, 0)
+        xsd_form.addWidget(self._ms_topology_policy, 3, 1, 1, 2)
+        xsd_form.addWidget(self._ms_overwrite, 4, 1, 1, 2)
+
+        self._ms_xsd_summary = self.QTextEdit()
+        self._ms_xsd_summary.setReadOnly(True)
+        self._ms_xsd_summary.setMinimumHeight(100)
+        xsd_layout.addLayout(xsd_form)
+        xsd_layout.addWidget(run_xsd)
+        xsd_layout.addWidget(self._ms_xsd_summary)
+
+        off_card, off_layout = self._make_card("Materials Studio ClayFF OFF 审计")
+        off_form = self.QGridLayout()
+        off_form.setHorizontalSpacing(12)
+        off_form.setVerticalSpacing(12)
+        self._ms_off_input = self.QLineEdit()
+        self._ms_off_clayff_input = self.QLineEdit(str(self._state.clayff_path))
+        choose_off = self.QPushButton("选择 OFF")
+        choose_off.setObjectName("GhostAction")
+        choose_off.clicked.connect(self._choose_ms_off)
+        choose_off_clayff = self.QPushButton("ClayFF 文件")
+        choose_off_clayff.setObjectName("GhostAction")
+        choose_off_clayff.clicked.connect(self._choose_ms_off_clayff)
+        run_off_audit = self.QPushButton("运行 OFF 审计")
+        run_off_audit.setObjectName("PrimaryAction")
+        run_off_audit.clicked.connect(self._run_material_studio_off_audit)
+        off_form.addWidget(self.QLabel("OFF 文件"), 0, 0)
+        off_form.addWidget(self._ms_off_input, 0, 1)
+        off_form.addWidget(choose_off, 0, 2)
+        off_form.addWidget(self.QLabel("ClayFF 参数"), 1, 0)
+        off_form.addWidget(self._ms_off_clayff_input, 1, 1)
+        off_form.addWidget(choose_off_clayff, 1, 2)
+
+        self._ms_off_summary = self.QTextEdit()
+        self._ms_off_summary.setReadOnly(True)
+        self._ms_off_summary.setMinimumHeight(100)
+        self._ms_off_issues = self.QTableWidget(0, 3)
+        self._ms_off_issues.setHorizontalHeaderLabels(["Severity", "Code", "Message"])
+        self._ms_off_issues.horizontalHeader().setSectionResizeMode(self.QHeaderView.ResizeMode.Stretch)
+        self._ms_off_issues.setMinimumHeight(160)
+        off_layout.addLayout(off_form)
+        off_layout.addWidget(run_off_audit)
+        off_layout.addWidget(self._ms_off_summary)
+        off_layout.addWidget(self._ms_off_issues)
+
+        layout.addWidget(xsd_card)
+        layout.addWidget(off_card)
+        layout.addStretch(1)
+        page.setLayout(layout)
+        self._step_stack.addWidget(page)
+
     def _go_to_step(self, index: int):
         self._current_step = index
         self._step_stack.setCurrentIndex(index)
@@ -745,6 +849,7 @@ class ClayFFWizardWindow:
             ("同晶替换", "可独立执行同晶替换，也可把结果作为后续力场赋予的上游输入。"),
             ("力场赋予", "可独立载入结构执行 ClayFF 分配，也可承接同晶替换结果。"),
             ("力场校验", "只校验 data 文件；可独立载入 data，也可承接当前赋予结果导出后的 data。"),
+            ("Materials Studio", "独立执行 XSD ClayFF 赋型，并审计 Forcite OFF 与 ClayFF 参数的一致性。"),
         ]
         self._header_title.setText(headers[index][0])
         self._header_subtitle.setText(headers[index][1])
@@ -760,6 +865,8 @@ class ClayFFWizardWindow:
                 done = self._state.substitution_log is not None
             elif index == 1:
                 done = self._state.assigned is not None
+            elif index == 3:
+                done = self._state.output_xsd_path is not None or self._state.material_studio_off_report is not None
             button.setProperty("done", done)
             button.style().unpolish(button)
             button.style().polish(button)
@@ -837,6 +944,51 @@ class ClayFFWizardWindow:
         if path:
             self._assignment_source_input.setText(path)
 
+    def _choose_ms_structure(self):
+        path, _ = self.QFileDialog.getOpenFileName(
+            self._window,
+            "选择 Materials Studio 赋型结构",
+            "",
+            "Structures (*.cif *.xsd *.xyz *.extxyz *.vasp *.poscar *.contcar *.res);;All Files (*)",
+        )
+        if not path:
+            return
+        source = Path(path)
+        self._ms_structure_input.setText(path)
+        if not self._ms_xsd_output_input.text().strip():
+            suggested = self._default_xsd_output_path(source)
+            self._ms_xsd_output_input.setText(str(suggested) if suggested is not None else "")
+
+    def _choose_ms_xsd_output(self):
+        path, _ = self.QFileDialog.getSaveFileName(
+            self._window,
+            "选择 Materials Studio XSD 输出",
+            self._ms_xsd_output_input.text().strip(),
+            "Materials Studio XSD (*.xsd)",
+        )
+        if path:
+            self._ms_xsd_output_input.setText(path)
+
+    def _choose_ms_clayff(self):
+        path, _ = self.QFileDialog.getOpenFileName(self._window, "选择 ClayFF 参数", "", "Text (*.txt);;All Files (*)")
+        if path:
+            self._ms_clayff_input.setText(path)
+
+    def _choose_ms_off(self):
+        path, _ = self.QFileDialog.getOpenFileName(
+            self._window,
+            "选择 Materials Studio OFF",
+            "",
+            "Materials Studio OFF (*.off);;All Files (*)",
+        )
+        if path:
+            self._ms_off_input.setText(path)
+
+    def _choose_ms_off_clayff(self):
+        path, _ = self.QFileDialog.getOpenFileName(self._window, "选择 ClayFF 参数", "", "Text (*.txt);;All Files (*)")
+        if path:
+            self._ms_off_clayff_input.setText(path)
+
     def _choose_clayff(self):
         path, _ = self.QFileDialog.getOpenFileName(self._window, "选择 ClayFF 文件", "", "Text (*.txt)")
         if path:
@@ -872,6 +1024,10 @@ class ClayFFWizardWindow:
         self._state.clayff_path = path
         if hasattr(self, "_clayff_path_input"):
             self._clayff_path_input.setText(str(path))
+        if hasattr(self, "_ms_clayff_input"):
+            self._ms_clayff_input.setText(str(path))
+        if hasattr(self, "_ms_off_clayff_input"):
+            self._ms_off_clayff_input.setText(str(path))
 
     def _run_substitution_stage(self):
         input_text = self._input_path_input.text().strip()
@@ -1053,37 +1209,91 @@ class ClayFFWizardWindow:
         self._populate_export_preview(output_path)
         self._ready_card.setText(f"Ready\n已导出: {output_path.name}")
 
-    def _export_material_studio_xsd(self):
-        if self._state.assigned is None or self._state.structure is None:
-            self.QMessageBox.warning(self._window, "无法导出", "请先完成力场赋予。")
+    def _open_materials_studio_from_assignment(self):
+        source_text = self._assignment_source_input.text().strip()
+        if source_text:
+            source_path = Path(source_text)
+            self._ms_structure_input.setText(source_text)
+            suggested = self._default_xsd_output_path(source_path)
+            self._ms_xsd_output_input.setText(str(suggested) if suggested is not None else "")
+        self._ms_clayff_input.setText(self._clayff_path_input.text().strip())
+        self._go_to_step(self.PAGE_INDEX["materials-studio"])
+
+    def _run_material_studio_assignment(self):
+        source_text = self._ms_structure_input.text().strip()
+        output_text = self._ms_xsd_output_input.text().strip()
+        if not source_text:
+            self.QMessageBox.warning(self._window, "缺少结构", "请先选择输入结构。")
             return
-        source_path = self._state.assignment_source_path
-        suggested = self._default_xsd_output_path(source_path)
-        path, _ = self.QFileDialog.getSaveFileName(
-            self._window,
-            "导出 Material Studio XSD",
-            str(suggested) if suggested is not None else "",
-            "Materials Studio XSD (*.xsd)",
-        )
-        if not path:
+        if not output_text:
+            suggested = self._default_xsd_output_path(Path(source_text))
+            output_text = str(suggested) if suggested is not None else ""
+            self._ms_xsd_output_input.setText(output_text)
+        if not output_text:
+            self.QMessageBox.warning(self._window, "缺少输出", "请先设置 XSD 输出路径。")
             return
-        output_path = Path(path)
-        source_xsd = source_path if source_path and source_path.suffix.lower() == ".xsd" else None
+        clayff_text = self._ms_clayff_input.text().strip() or str(default_clayff_path())
+        policy = self._ms_topology_policy.currentData() or "rebuild"
         try:
-            result = write_material_studio_xsd(
-                self._state.structure,
-                self._state.assigned,
-                output_path,
-                source_xsd=source_xsd,
-                topology_conflict="rebuild",
-                overwrite=True,
+            result = assign_material_studio_file(
+                source_text,
+                output_text,
+                clayff_text,
+                topology_conflict=policy,
+                overwrite=self._ms_overwrite.isChecked(),
             )
         except Exception as exc:
-            self.QMessageBox.critical(self._window, "XSD 导出失败", str(exc))
+            self.QMessageBox.critical(self._window, "Materials Studio XSD 赋型失败", str(exc))
             return
         self._state.output_xsd_path = result.path
         mode_text = "保留原 XSD 元数据" if result.mode == "patched" else "重建 P1 XSD"
-        self._ready_card.setText(f"Ready\n已导出 {result.path.name}\n{mode_text}")
+        self._ms_xsd_summary.setPlainText(
+            "\n".join(
+                [
+                    f"输出: {result.path}",
+                    f"模式: {mode_text}",
+                    f"原子数: {result.atom_count}",
+                    f"键数: {result.bond_count}",
+                ]
+            )
+        )
+        self._update_step_buttons()
+        self._ready_card.setText(f"Ready\nMaterials Studio XSD 已导出: {result.path.name}")
+
+    def _run_material_studio_off_audit(self):
+        off_text = self._ms_off_input.text().strip()
+        if not off_text:
+            self.QMessageBox.warning(self._window, "缺少 OFF", "请先选择 Materials Studio OFF 文件。")
+            return
+        clayff_text = self._ms_off_clayff_input.text().strip() or str(default_clayff_path())
+        try:
+            report = audit_material_studio_off(off_text, clayff_text)
+        except Exception as exc:
+            self.QMessageBox.critical(self._window, "Materials Studio OFF 审计失败", str(exc))
+            return
+        self._state.material_studio_off_report = report
+        status = "通过" if report.is_valid else "未通过"
+        self._ms_off_summary.setPlainText(
+            "\n".join(
+                [
+                    f"状态: {status}",
+                    f"OFF: {report.off_path}",
+                    f"ClayFF: {report.clayff_path}",
+                    f"原子类型: {report.atom_type_count}/{report.expected_atom_type_count}",
+                    f"键参数: {report.bond_count}",
+                    f"角参数: {report.angle_count}",
+                    f"错误: {report.error_count}",
+                    f"警告: {report.warning_count}",
+                ]
+            )
+        )
+        self._ms_off_issues.setRowCount(len(report.issues))
+        for row, issue in enumerate(report.issues):
+            self._ms_off_issues.setItem(row, 0, self.QTableWidgetItem(issue.severity))
+            self._ms_off_issues.setItem(row, 1, self.QTableWidgetItem(issue.code))
+            self._ms_off_issues.setItem(row, 2, self.QTableWidgetItem(issue.message))
+        self._update_step_buttons()
+        self._ready_card.setText(f"Ready\nOFF 审计{status}: {report.error_count} errors")
 
     def _load_existing_data(self):
         path, _ = self.QFileDialog.getOpenFileName(
@@ -1113,7 +1323,6 @@ class ClayFFWizardWindow:
         if structure is None:
             panel.show_message("No preview")
             panel.caption.setText(caption or "暂无结构。")
-            panel.projected_points = None
             return
         interactive_error = None
         if supports_interactive_qwidget():
@@ -1129,7 +1338,6 @@ class ClayFFWizardWindow:
                 )
                 panel.show_ovito_scene(scene)
                 panel.caption.setText(caption or f"Rendered with OVITO interactive viewport | Overlay: {overlay_mode}")
-                panel.projected_points = None
                 return
             except Exception as exc:
                 interactive_error = str(exc)
@@ -1162,11 +1370,9 @@ class ClayFFWizardWindow:
             if interactive_error:
                 fallback_caption = f"{fallback_caption}\n交互式 viewport 不可用，已回退静态预览：{interactive_error}"
             panel.caption.setText(fallback_caption)
-            panel.projected_points = None
         except Exception as exc:
             panel.show_message("OVITO render unavailable")
             panel.caption.setText(f"渲染失败：{exc}")
-            panel.projected_points = None
 
     def _render_substitution_preview(self, path: Path):
         try:
@@ -1366,47 +1572,6 @@ class ClayFFWizardWindow:
             lines.append(f"- #{neighbor.index} {neighbor.label} ({neighbor.element}) : {distance:.4f} A{suffix}")
         self._local_environment.setPlainText("\n".join(lines))
 
-    def _panel_click_to_atom_index(self, panel: _PreviewPanel, x_pos: float, y_pos: float) -> int | None:
-        if panel.projected_points is None or len(panel.projected_points) == 0:
-            return None
-
-        label_width = panel.image.width()
-        label_height = panel.image.height()
-        render_width, render_height = panel.render_size
-        scale = min(label_width / render_width, label_height / render_height)
-        shown_width = render_width * scale
-        shown_height = render_height * scale
-        offset_x = (label_width - shown_width) / 2.0
-        offset_y = (label_height - shown_height) / 2.0
-
-        if x_pos < offset_x or y_pos < offset_y or x_pos > offset_x + shown_width or y_pos > offset_y + shown_height:
-            return None
-
-        x_render = (x_pos - offset_x) / scale
-        y_render = (y_pos - offset_y) / scale
-        deltas = panel.projected_points - [[x_render, y_render]]
-        distances = (deltas[:, 0] ** 2 + deltas[:, 1] ** 2) ** 0.5
-        nearest = int(distances.argmin())
-        if float(distances[nearest]) > 24.0:
-            return None
-        return nearest
-
-    def _on_assignment_preview_click(self, x_pos: float, y_pos: float):
-        atom_index = self._panel_click_to_atom_index(self._assignment_preview, x_pos, y_pos)
-        if atom_index is None:
-            return
-        self._selected_atom_index = atom_index
-        self._sync_atom_selection()
-        self._update_local_environment()
-
-    def _on_validation_preview_click(self, x_pos: float, y_pos: float):
-        atom_index = self._panel_click_to_atom_index(self._validation_preview, x_pos, y_pos)
-        if atom_index is None:
-            return
-        self._selected_atom_index = atom_index
-        self._sync_atom_selection()
-        self._update_local_environment()
-
     def _load_structure(self, path: Path):
         self._state.input_structure_path = path
         self._input_path_input.setText(str(path))
@@ -1419,17 +1584,23 @@ class ClayFFWizardWindow:
 def build_visualizer_window(
     clayff_path: str | Path | None = None,
     data_path: str | Path | None = None,
+    initial_page: str = "substitution",
 ):
-    return ClayFFWizardWindow(clayff_path=clayff_path, data_path=data_path)
+    return ClayFFWizardWindow(clayff_path=clayff_path, data_path=data_path, initial_page=initial_page)
 
 
 def launch_visualizer(
     clayff_path: str | Path | None = None,
     data_path: str | Path | None = None,
+    initial_page: str = "substitution",
 ) -> int:
     qt = _qt_imports()
     app = qt["QApplication"].instance() or qt["QApplication"]([])
     configure_application_font(app)
-    window = build_visualizer_window(clayff_path=clayff_path, data_path=data_path)
+    window = build_visualizer_window(
+        clayff_path=clayff_path,
+        data_path=data_path,
+        initial_page=initial_page,
+    )
     window.show()
     return app.exec()

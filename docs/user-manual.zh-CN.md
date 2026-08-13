@@ -104,6 +104,18 @@ Linux 用户在项目根目录执行：
 bash scripts/install-clayff-toolkit.sh
 ```
 
+默认安装会额外生成：
+
+- `~/.local/bin/clayff-toolkit-gui` 独立 GUI 启动命令
+- `~/.local/share/applications/ClayFF-Toolkit.desktop` Linux 应用菜单入口
+
+可直接启动完整 GUI，或直接进入 Materials Studio 工作区：
+
+```bash
+clayff-toolkit-gui
+clayff-toolkit-gui --page materials-studio
+```
+
 Windows 开发者或命令行用户在 PowerShell 中执行：
 
 ```powershell
@@ -195,6 +207,16 @@ clayff-toolkit assign-ms input.xsd input_clayff.xsd
 中计算，仍需在 Materials Studio 中安装或选择与这些类型匹配的私有
 `clayff.off`。该 OFF 文件不随 ClayFF-Toolkit 分发。
 
+可对私有 OFF 文件执行参数一致性审计：
+
+```bash
+clayff-toolkit audit-ms-off clayff.off --clayff clayff.frc
+```
+
+审计覆盖 OFF 必需段、关键 preferences、原子类型、元素、质量、电荷、连接数、
+LJ 参数、等价表、键参数和角参数。`test-temp/` 中的私有力场不会被 Git 跟踪、
+测试 fixture 引用或打包分发。
+
 ### 5.4 一步完成“同晶置换 -> 分配 -> 校验 -> 导出”
 
 这是当前最推荐的单命令工作流：
@@ -227,6 +249,12 @@ clayff-toolkit visualize
 
 ```bash
 clayff-toolkit visualize --clayff ./src/clayff_toolkit/resources/clayff.txt --data output.data
+```
+
+直接进入 Materials Studio 工作区：
+
+```bash
+clayff-toolkit visualize --page materials-studio
 ```
 
 ## 6. 命令行详细说明
@@ -282,7 +310,22 @@ clayff-toolkit assign-ms <输入结构> <输出xsd> [选项]
 
 默认不会覆盖已有文件。推荐输出为 `<输入名>_clayff.xsd`。
 
-### 6.4 `workflow`
+### 6.4 `audit-ms-off`
+
+用途：
+
+- 解析 Materials Studio OFF 文件
+- 对照 ClayFF/LAMMPS 参数源检查 Forcite 力场的一致性
+
+基本格式：
+
+```bash
+clayff-toolkit audit-ms-off <输入off> [--clayff <clayff.txt或clayff.frc>]
+```
+
+返回码为 `0` 表示没有错误；非零表示 OFF 格式或参数存在不一致。
+
+### 6.5 `workflow`
 
 用途：
 
@@ -313,7 +356,7 @@ clayff-toolkit workflow \
   --interlayer Ca
 ```
 
-### 6.5 `substitute`
+### 6.6 `substitute`
 
 用途：
 
@@ -324,7 +367,7 @@ clayff-toolkit workflow \
 - 这个入口保留了 legacy substitution engine 的参数风格。
 - 如果你只想完成标准单结构工作流，优先使用 `workflow`。
 
-### 6.6 `visualize`
+### 6.7 `visualize`
 
 用途：
 
@@ -334,18 +377,21 @@ clayff-toolkit workflow \
 
 - `--clayff`：可选 ClayFF 参数文件路径
 - `--data`：可选 LAMMPS `data` 文件路径
+- `--page`：启动时打开 `substitution / assignment / validation / materials-studio`
 
 ## 7. GUI 使用说明
 
 ### 7.1 向导结构
 
-当前 GUI 不是旧式单页面板，而是三步向导：
+当前 GUI 是包含四个独立工作区的向导式工作台：
 
 1. 同晶替换
 2. 力场赋予
 3. 力场校验与导出
+4. Materials Studio
 
-左侧边栏用于步骤切换。完成上一步后，再点击“下一步”进入下一页。
+左侧边栏用于工作区切换。前三页可以串联使用，也可以独立进入；Materials Studio
+页是独立模式。页面内容使用滚动容器，适配常见笔记本屏幕高度。
 
 ### 7.2 同晶替换页面
 
@@ -367,6 +413,7 @@ clayff-toolkit workflow \
 - 选择用于赋予的结构来源
 - 执行 ClayFF 分配
 - 直接导出当前 `.data`
+- 进入独立 Materials Studio 模式
 - 查看局部环境
 - 查看 Atom 表
 - 选择 `Element / ClayFF Type / Profile` 预览模式
@@ -381,7 +428,28 @@ clayff-toolkit workflow \
 - 查看 `data` 级别的 validation warnings
 - 导出 LAMMPS `data`
 
-### 7.5 3D 结构视图
+### 7.5 Materials Studio 页面
+
+该页面包含两个相互独立的操作区。
+
+XSD ClayFF 赋型：
+
+- 读取 CIF、P1 XSD、周期 XYZ/EXTXYZ 等结构
+- 选择 ClayFF 参数源和 XSD 输出路径
+- 选择拓扑冲突时重建或报错
+- 默认禁止覆盖已有文件，可由用户显式允许覆盖
+- 显示 patched/rebuilt 模式、原子数和键数
+
+OFF 审计：
+
+- 选择用户私有的 Materials Studio `.off`
+- 选择内部 `clayff.txt` 或 LAMMPS 风格 `clayff.frc`
+- 显示错误和警告计数
+- 用表格列出缺失段、类型或参数数值差异
+
+OFF 审计不会修改输入文件，也不会把所选 OFF 复制到仓库或构建产物。
+
+### 7.6 3D 结构视图
 
 当前行为：
 
@@ -392,7 +460,7 @@ clayff-toolkit workflow \
 
 颜色逻辑取决于 `Overlay` 模式。
 
-### 7.6 Overlay 模式
+### 7.7 Overlay 模式
 
 当前 GUI 使用 OVITO 默认渲染模式进行结构渲染。当前版本中，结构渲染保留在“同晶替换”页面，用于在执行同晶替换之前预览输入结构。
 
@@ -437,7 +505,7 @@ clayff-toolkit workflow \
 
 - 快速定位 profile 不一致、层间离子不合预期等问题原子
 
-### 7.7 原子选择与局部环境
+### 7.8 原子选择与局部环境
 
 当前版本以 Atom 表格选择为主，局部环境信息会在“力场赋予”页面更新。
 
@@ -450,7 +518,7 @@ clayff-toolkit workflow \
 - 邻近原子列表及距离
 - 与该原子直接相关的 validation warning
 
-### 7.8 Data 校验面板
+### 7.9 Data 校验面板
 
 当前会显示：
 
@@ -462,25 +530,7 @@ clayff-toolkit workflow \
 
 这个面板现在面向最终导出的 `data` 文件，而不是原始结构。
 
-### 7.9 Forcefield Catalog 页
-
-该页展示当前 ClayFF 参数文件中的类型表，包含：
-
-- Type
-- Mass
-- Element
-- Connections
-- Charge
-- LJ 参数（epsilon, sigma）
-
-适合：
-
-- 检查某个类型是否在参数表内
-- 交叉核对电荷和非键参数
-
-### 7.10 Data Preview 页
-
-在导出后或手动载入 `.data` 文件后，界面会显示：
+导出后或手动载入 `.data` 文件后，同一页面还会显示：
 
 - 原子数
 - 键数
@@ -529,8 +579,8 @@ clayff-toolkit workflow \
 
 ### 8.4 Materials Studio XSD
 
-GUI 的“力场赋予”页面可读取 `.xsd`，并通过“导出 Material Studio XSD”
-生成新文件。程序不会覆盖输入 XSD，除非用户明确选择相同路径并确认保存。
+GUI 的独立 Materials Studio 页面可读取 `.xsd` 并生成新文件。程序默认不会覆盖
+已有输出，只有启用“允许覆盖已有输出文件”后才会覆盖。
 
 首版仅支持包含全部显式原子的三维周期 P1 XSD。非 P1 对称结构应先在
 Materials Studio 中展开为 P1，再交给工具包赋型。
@@ -678,7 +728,10 @@ powershell -ExecutionPolicy Bypass -File scripts\install-clayff-toolkit.ps1
 - `pipeline`
 - `workflow`
 - `visualize`
+- `assign-ms`
+- `audit-ms-off`
 - GUI `offscreen` smoke test
+- Linux GUI launcher 和桌面入口
 - CIF 无 warning triclinic 加载
 - profile 推断与 validation warning
 

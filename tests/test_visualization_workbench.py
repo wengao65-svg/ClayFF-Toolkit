@@ -8,6 +8,10 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from clayff_toolkit.assignment.cif import AtomSite, Cell, CifStructure
+from clayff_toolkit.assignment.material_studio_off import (
+    MaterialStudioOffAuditIssue,
+    MaterialStudioOffAuditReport,
+)
 from clayff_toolkit.visualization import app as visualization_app
 from clayff_toolkit.visualization import build_visualizer_window
 from clayff_toolkit.visualization.ovito_preview import (
@@ -92,7 +96,7 @@ def test_visualizer_window_loads_structure_and_updates_local_environment() -> No
     assert window._selected_atom_index == 0
     assert "Selected atom:" in window._local_environment.toPlainText()
     assert window._atom_table.rowCount() == len(window._structure.atoms)
-    assert window._step_stack.count() == 3
+    assert window._step_stack.count() == 4
     app.processEvents()
     window._go_to_step(2)
     app.processEvents()
@@ -160,27 +164,89 @@ def test_rerunning_upstream_invalidates_previous_validation_data_file() -> None:
 
 
 @pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
-def test_visualizer_exports_material_studio_xsd(monkeypatch, tmp_path: Path) -> None:
+def test_visualizer_materials_studio_workspace_exports_xsd(tmp_path: Path) -> None:
     app = QApplication.instance() or QApplication([])
     window = build_visualizer_window(
         clayff_path=Path("src/clayff_toolkit/resources/clayff.txt"),
     )
     source = FIXTURES / "assignment_input" / "MMT_0W_rank3_d9.545.cif"
     output = tmp_path / "assigned.xsd"
-    window._assignment_source_input.setText(str(source))
-    window._run_assignment_stage()
-    monkeypatch.setattr(
-        window.QFileDialog,
-        "getSaveFileName",
-        lambda *args, **kwargs: (str(output), "Materials Studio XSD (*.xsd)"),
-    )
+    window._go_to_step(window.PAGE_INDEX["materials-studio"])
+    window._ms_structure_input.setText(str(source))
+    window._ms_xsd_output_input.setText(str(output))
 
-    window._export_material_studio_xsd()
+    window._run_material_studio_assignment()
     app.processEvents()
 
     assert output.exists()
     assert window._state.output_xsd_path == output
     assert "assigned.xsd" in window._ready_card.text()
+    window.close()
+
+
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
+def test_assignment_page_opens_materials_studio_workspace() -> None:
+    app = QApplication.instance() or QApplication([])
+    window = build_visualizer_window(
+        clayff_path=Path("src/clayff_toolkit/resources/clayff.txt"),
+    )
+    source = FIXTURES / "assignment_input" / "MMT_0W_rank3_d9.545.cif"
+    window._assignment_source_input.setText(str(source))
+
+    window._open_materials_studio_from_assignment()
+    app.processEvents()
+
+    assert window._step_stack.currentIndex() == window.PAGE_INDEX["materials-studio"]
+    assert window._ms_structure_input.text() == str(source)
+    assert window._ms_xsd_output_input.text().endswith("MMT_0W_rank3_d9.545_clayff.xsd")
+    window.close()
+
+
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
+def test_visualizer_materials_studio_workspace_is_scrollable_on_laptop_viewport() -> None:
+    app = QApplication.instance() or QApplication([])
+    window = build_visualizer_window(
+        clayff_path=Path("src/clayff_toolkit/resources/clayff.txt"),
+        initial_page="materials-studio",
+    )
+    window.resize(1024, 768)
+    window.show()
+    app.processEvents()
+
+    assert window.size().height() == 768
+    assert window.minimumSizeHint().height() < 768
+    assert window._content_scroll.verticalScrollBar().maximum() > 0
+    window.close()
+
+
+@pytest.mark.skipif(not OVITO_QT_AVAILABLE, reason="OVITO Qt compatibility layer is unavailable.")
+def test_visualizer_materials_studio_off_audit_populates_report(monkeypatch, tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    window = build_visualizer_window(
+        clayff_path=Path("src/clayff_toolkit/resources/clayff.txt"),
+        initial_page="materials-studio",
+    )
+    off_path = tmp_path / "clayff.off"
+    off_path.write_text("test", encoding="utf-8")
+    report = MaterialStudioOffAuditReport(
+        off_path=off_path,
+        clayff_path=Path("src/clayff_toolkit/resources/clayff.txt"),
+        atom_type_count=26,
+        expected_atom_type_count=27,
+        bond_count=3,
+        angle_count=1,
+        issues=(MaterialStudioOffAuditIssue("error", "missing-atom-type", "Missing ClayFF atom type: Cl"),),
+    )
+    monkeypatch.setattr(visualization_app, "audit_material_studio_off", lambda *args: report)
+    window._ms_off_input.setText(str(off_path))
+
+    window._run_material_studio_off_audit()
+    app.processEvents()
+
+    assert window._state.material_studio_off_report == report
+    assert "状态: 未通过" in window._ms_off_summary.toPlainText()
+    assert window._ms_off_issues.rowCount() == 1
+    assert window._ms_off_issues.item(0, 1).text() == "missing-atom-type"
     window.close()
 
 

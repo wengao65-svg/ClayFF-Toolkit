@@ -100,6 +100,20 @@ def test_gui_launcher_default_launches_visualizer(monkeypatch) -> None:
     assert calls == [("params.txt", "input.data")]
 
 
+def test_gui_launcher_can_open_materials_studio_workspace(monkeypatch) -> None:
+    calls = []
+    monkeypatch.setattr(
+        gui_launcher,
+        "launch_visualizer",
+        lambda clayff, data, *, initial_page: calls.append((clayff, data, initial_page)) or 0,
+    )
+
+    exit_code = gui_launcher.main(["--page", "materials-studio"])
+
+    assert exit_code == 0
+    assert calls == [(None, None, "materials-studio")]
+
+
 def test_gui_launcher_writes_crash_log_on_startup_failure(monkeypatch, tmp_path: Path, capsys) -> None:
     log_dir = tmp_path / "logs"
     monkeypatch.setenv("CLAYFF_TOOLKIT_LOG_DIR", str(log_dir))

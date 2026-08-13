@@ -10,6 +10,8 @@
   - mineral profile inference markers
   - LAMMPS data export
   - Materials Studio XSD metadata-preserving patch and P1 document rebuild
+  - Materials Studio OFF parsing and numerical consistency auditing against
+    ClayFF atom, VDW, bond, angle, equivalence, and preference data
 - `src/clayff_toolkit/substitution`
   - random layer and framework substitution engine migrated from the legacy
     prototype
@@ -17,9 +19,10 @@
   - charge parsing and batch net-charge checks
   - profile-aware validation warnings
 - `src/clayff_toolkit/visualization`
-  - PySide6 wizard UI for substitution -> assignment -> validation flow
+  - PySide6 workbench for substitution, assignment, validation, and Materials Studio workflows
   - OVITO-based default rendering in the substitution stage
   - local-environment inspection, profile/warning text summaries, and export review
+  - scrollable content for laptop-sized Linux and Windows displays
 - `src/clayff_toolkit/pipeline.py`
   - orchestration layer for `substitution -> assignment -> validation`
 
@@ -28,17 +31,21 @@
 - CLI
   - `clayff-toolkit assign`
   - `clayff-toolkit assign-ms`
+  - `clayff-toolkit audit-ms-off`
   - `clayff-toolkit pipeline`
   - `clayff-toolkit workflow`
   - `clayff-toolkit charge`
   - `clayff-toolkit substitute`
   - `clayff-toolkit visualize`
+  - `clayff-toolkit-gui`
 - Python API
   - `ToolkitPipeline`
   - `assign_file`
   - `assign_material_studio_file`
   - `load_material_studio_structure`
   - `write_material_studio_xsd`
+  - `load_material_studio_off`
+  - `audit_material_studio_off`
   - `calculate_net_charge`
   - `infer_mineral_profiles`
   - `validate_assigned_structure`

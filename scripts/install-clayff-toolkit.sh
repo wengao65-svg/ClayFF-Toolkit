@@ -13,6 +13,8 @@ Options:
                    Default: $HOME/.local/bin
   --venv DIR        Create or reuse the virtual environment at DIR.
                    Default: <repo>/.venv
+  --desktop-dir DIR Install the Linux desktop entry into DIR.
+                   Default: $HOME/.local/share/applications
   --no-shell-rc     Do not update Bash startup files with the bin directory.
   -h, --help        Show this help message.
 
@@ -33,6 +35,7 @@ repo_root="$(cd -- "$script_dir/.." && pwd)"
 python_bin="${PYTHON:-python3}"
 venv_dir="${CLAYFF_TOOLKIT_VENV:-$repo_root/.venv}"
 bin_dir="${CLAYFF_TOOLKIT_BIN_DIR:-$HOME/.local/bin}"
+desktop_dir="${CLAYFF_TOOLKIT_DESKTOP_DIR:-$HOME/.local/share/applications}"
 install_gui=1
 update_shell_rc=1
 python_args=()
@@ -51,6 +54,11 @@ while (($#)); do
     --venv)
       (($# >= 2)) || die "--venv requires a directory"
       venv_dir="$2"
+      shift 2
+      ;;
+    --desktop-dir)
+      (($# >= 2)) || die "--desktop-dir requires a directory"
+      desktop_dir="$2"
       shift 2
       ;;
     --no-shell-rc)
@@ -82,6 +90,7 @@ fi
   --python "$python_bin" \
   --venv "$venv_dir" \
   --bin-dir "$bin_dir" \
+  --desktop-dir "$desktop_dir" \
   --shell-rc "$HOME/.bashrc" \
   --shell-rc "$HOME/.profile" \
   "${python_args[@]}"

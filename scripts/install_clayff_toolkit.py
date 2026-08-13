@@ -27,6 +27,7 @@ class InstallConfig:
     update_path: bool = True
     platform: PlatformName = "posix"
     shell_rc_files: tuple[Path, ...] = ()
+    desktop_dir: Path | None = None
 
     @property
     def install_target(self) -> str:
@@ -43,6 +44,17 @@ class InstallConfig:
     def launcher_path(self) -> Path:
         suffix = ".cmd" if self.platform == "windows" else ""
         return self.bin_dir / f"clayff-toolkit{suffix}"
+
+    @property
+    def gui_launcher_path(self) -> Path:
+        return self.bin_dir / "clayff-toolkit-gui"
+
+    @property
+    def desktop_entry_path(self) -> Path | None:
+        if self.platform != "posix" or not self.gui:
+            return None
+        desktop_dir = self.desktop_dir or default_desktop_dir()
+        return desktop_dir / "ClayFF-Toolkit.desktop"
 
 
 def default_repo_root() -> Path:
@@ -74,6 +86,13 @@ def default_shell_rc_files(home: Path | None = None) -> tuple[Path, ...]:
     return (base / ".bashrc", base / ".profile")
 
 
+def default_desktop_dir(home: Path | None = None) -> Path:
+    xdg_data_home = os.environ.get("XDG_DATA_HOME")
+    if xdg_data_home:
+        return Path(xdg_data_home) / "applications"
+    return (home or Path.home()) / ".local" / "share" / "applications"
+
+
 def run_command(command: Sequence[str]) -> None:
     subprocess.run(list(command), check=True)
 
@@ -91,6 +110,35 @@ def posix_launcher_text(venv_python: Path) -> str:
             "#!/usr/bin/env bash",
             "set -euo pipefail",
             f'exec "{venv_python}" -m clayff_toolkit "$@"',
+            "",
+        ]
+    )
+
+
+def posix_gui_launcher_text(venv_python: Path) -> str:
+    return "\n".join(
+        [
+            "#!/usr/bin/env bash",
+            "set -euo pipefail",
+            f'exec "{venv_python}" -m clayff_toolkit.gui_launcher "$@"',
+            "",
+        ]
+    )
+
+
+def desktop_entry_text(gui_launcher_path: Path) -> str:
+    return "\n".join(
+        [
+            "[Desktop Entry]",
+            "Type=Application",
+            "Version=1.0",
+            "Name=ClayFF Toolkit",
+            "Comment=ClayFF assignment and Materials Studio workflows",
+            f'Exec="{gui_launcher_path}"',
+            "Icon=applications-science",
+            "Terminal=false",
+            "Categories=Science;Education;",
+            "StartupNotify=true",
             "",
         ]
     )
@@ -114,6 +162,19 @@ def write_launcher(config: InstallConfig) -> Path:
     if config.platform == "posix":
         launcher_path.chmod(launcher_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     return launcher_path
+
+
+def write_posix_gui_entrypoints(config: InstallConfig) -> tuple[Path, Path] | None:
+    desktop_path = config.desktop_entry_path
+    if config.platform != "posix" or not config.gui or desktop_path is None:
+        return None
+    config.bin_dir.mkdir(parents=True, exist_ok=True)
+    gui_launcher = config.gui_launcher_path
+    gui_launcher.write_text(posix_gui_launcher_text(config.venv_python), encoding="utf-8", newline="")
+    gui_launcher.chmod(gui_launcher.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    desktop_path.parent.mkdir(parents=True, exist_ok=True)
+    desktop_path.write_text(desktop_entry_text(gui_launcher), encoding="utf-8", newline="")
+    return gui_launcher, desktop_path
 
 
 def replace_marked_block(original: str, block: str) -> str:
@@ -156,6 +217,7 @@ def update_posix_shell_path(bin_dir: Path, rc_files: Sequence[Path]) -> None:
 def install(config: InstallConfig, runner: Runner = run_command) -> Path:
     create_venv_and_install(config, runner=runner)
     launcher_path = write_launcher(config)
+    write_posix_gui_entrypoints(config)
     if config.update_path and config.platform == "posix":
         update_posix_shell_path(config.bin_dir, config.shell_rc_files or default_shell_rc_files())
     return launcher_path
@@ -172,6 +234,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-gui", action="store_true")
     parser.add_argument("--no-path-update", action="store_true")
     parser.add_argument("--shell-rc", type=Path, action="append", default=[])
+    parser.add_argument("--desktop-dir", type=Path)
     return parser
 
 
@@ -187,6 +250,7 @@ def config_from_args(args: argparse.Namespace) -> InstallConfig:
         update_path=not args.no_path_update,
         platform=platform,
         shell_rc_files=tuple(path.resolve() for path in args.shell_rc),
+        desktop_dir=args.desktop_dir.resolve() if args.desktop_dir else None,
     )
 
 
@@ -195,6 +259,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     config = config_from_args(parser.parse_args(argv))
     launcher_path = install(config)
     print(f"Installed ClayFF-Toolkit launcher: {launcher_path}")
+    if config.platform == "posix" and config.gui:
+        print(f"Installed ClayFF-Toolkit GUI launcher: {config.gui_launcher_path}")
+        print(f"Installed desktop entry: {config.desktop_entry_path}")
     print("Verify with: clayff-toolkit --help")
     if config.platform == "posix" and str(config.bin_dir) not in os.environ.get("PATH", "").split(os.pathsep):
         print(f'Open a new terminal or run: export PATH="{config.bin_dir}:$PATH"')

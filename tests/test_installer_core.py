@@ -6,6 +6,8 @@ from pathlib import Path
 from scripts.install_clayff_toolkit import (
     InstallConfig,
     install,
+    desktop_entry_text,
+    posix_gui_launcher_text,
     posix_launcher_text,
     replace_marked_block,
     windows_launcher_text,
@@ -70,6 +72,29 @@ def test_windows_install_writes_cmd_launcher_without_shell_rc(tmp_path: Path) ->
     ]
     assert launcher == bin_dir / "clayff-toolkit.cmd"
     assert launcher.read_bytes() == windows_launcher_text(venv_dir / "Scripts" / "python.exe").encode("utf-8")
+
+
+def test_posix_gui_install_writes_gui_launcher_and_desktop_entry(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    config = InstallConfig(
+        repo_root=repo_root,
+        python=("python3",),
+        venv_dir=tmp_path / "venv",
+        bin_dir=tmp_path / "bin",
+        gui=True,
+        update_path=False,
+        platform="posix",
+        desktop_dir=tmp_path / "applications",
+    )
+
+    install(config, runner=lambda command: None)
+
+    assert config.gui_launcher_path.read_text(encoding="utf-8") == posix_gui_launcher_text(config.venv_python)
+    assert os.access(config.gui_launcher_path, os.X_OK)
+    assert config.desktop_entry_path is not None
+    assert config.desktop_entry_path.read_text(encoding="utf-8") == desktop_entry_text(config.gui_launcher_path)
+    assert f'Exec="{config.gui_launcher_path}"' in config.desktop_entry_path.read_text(encoding="utf-8")
 
 
 def test_marked_path_block_replacement_is_idempotent(tmp_path: Path) -> None:
