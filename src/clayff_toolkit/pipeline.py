@@ -48,6 +48,7 @@ class ToolkitPipeline:
         clayff_path: str | Path | None = None,
         *,
         topology_conflict: str = "rebuild",
+        ms_version: str = "auto",
         overwrite: bool = False,
     ) -> MaterialStudioWriteResult:
         return assign_material_studio_file(
@@ -55,6 +56,7 @@ class ToolkitPipeline:
             output_path,
             clayff_path,
             topology_conflict=topology_conflict,
+            ms_version=ms_version,
             overwrite=overwrite,
         )
 

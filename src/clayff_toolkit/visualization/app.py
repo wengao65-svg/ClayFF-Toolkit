@@ -10,6 +10,7 @@ from ..assignment import (
     AssignedStructure,
     CifStructure,
     MaterialStudioOffAuditReport,
+    SUPPORTED_MATERIAL_STUDIO_VERSIONS,
     assign_material_studio_file,
     assign_structure_file,
     audit_material_studio_off,
@@ -767,6 +768,10 @@ class ClayFFWizardWindow:
         self._ms_topology_policy = self.QComboBox()
         self._ms_topology_policy.addItem("拓扑冲突时重建", "rebuild")
         self._ms_topology_policy.addItem("拓扑冲突时报错", "error")
+        self._ms_version = self.QComboBox()
+        self._ms_version.addItem("自动（保留现有导出行为）", "auto")
+        for version in SUPPORTED_MATERIAL_STUDIO_VERSIONS:
+            self._ms_version.addItem(f"Materials Studio {version}", version)
         self._ms_overwrite = self.QCheckBox("允许覆盖已有输出文件")
 
         choose_structure = self.QPushButton("选择结构")
@@ -793,7 +798,9 @@ class ClayFFWizardWindow:
         xsd_form.addWidget(choose_ms_clayff, 2, 2)
         xsd_form.addWidget(self.QLabel("拓扑策略"), 3, 0)
         xsd_form.addWidget(self._ms_topology_policy, 3, 1, 1, 2)
-        xsd_form.addWidget(self._ms_overwrite, 4, 1, 1, 2)
+        xsd_form.addWidget(self.QLabel("目标 MS 版本"), 4, 0)
+        xsd_form.addWidget(self._ms_version, 4, 1, 1, 2)
+        xsd_form.addWidget(self._ms_overwrite, 5, 1, 1, 2)
 
         self._ms_xsd_summary = self.QTextEdit()
         self._ms_xsd_summary.setReadOnly(True)
@@ -1234,12 +1241,14 @@ class ClayFFWizardWindow:
             return
         clayff_text = self._ms_clayff_input.text().strip() or str(default_clayff_path())
         policy = self._ms_topology_policy.currentData() or "rebuild"
+        ms_version = self._ms_version.currentData() or "auto"
         try:
             result = assign_material_studio_file(
                 source_text,
                 output_text,
                 clayff_text,
                 topology_conflict=policy,
+                ms_version=ms_version,
                 overwrite=self._ms_overwrite.isChecked(),
             )
         except Exception as exc:
@@ -1247,11 +1256,16 @@ class ClayFFWizardWindow:
             return
         self._state.output_xsd_path = result.path
         mode_text = "保留原 XSD 元数据" if result.mode == "patched" else "重建 P1 XSD"
+        target_version_text = (
+            "自动" if result.target_version == "auto" else f"Materials Studio {result.target_version}"
+        )
         self._ms_xsd_summary.setPlainText(
             "\n".join(
                 [
                     f"输出: {result.path}",
                     f"模式: {mode_text}",
+                    f"目标 MS 版本: {target_version_text}",
+                    f"XSD 文档版本: {result.xsd_version}",
                     f"原子数: {result.atom_count}",
                     f"键数: {result.bond_count}",
                 ]

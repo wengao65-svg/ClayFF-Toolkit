@@ -16,11 +16,20 @@ def test_material_studio_assignment_command_is_registered() -> None:
     parser = build_argument_parser()
 
     args = parser.parse_args(
-        ["assign-ms", "input.cif", "output.xsd", "--topology-conflict", "error"]
+        [
+            "assign-ms",
+            "input.cif",
+            "output.xsd",
+            "--topology-conflict",
+            "error",
+            "--ms-version",
+            "2020",
+        ]
     )
 
     assert args.command == "assign-ms"
     assert args.topology_conflict == "error"
+    assert args.ms_version == "2020"
 
 
 def test_material_studio_off_audit_and_gui_page_are_registered() -> None:

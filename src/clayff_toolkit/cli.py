@@ -8,7 +8,10 @@ import shutil
 import sys
 from pathlib import Path
 
-from .assignment.material_studio import assign_material_studio_file
+from .assignment.material_studio import (
+    SUPPORTED_MATERIAL_STUDIO_VERSIONS,
+    assign_material_studio_file,
+)
 from .assignment.material_studio_off import audit_material_studio_off
 from .assignment.service import assign_file, default_clayff_path
 from .pipeline import ToolkitPipeline
@@ -62,6 +65,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
         choices=["rebuild", "error"],
         default="rebuild",
         help="How to handle an input XSD whose topology differs from ClayFF.",
+    )
+    assign_ms_parser.add_argument(
+        "--ms-version",
+        choices=["auto", *SUPPORTED_MATERIAL_STUDIO_VERSIONS],
+        default="auto",
+        help="Target Materials Studio version; auto preserves the existing export behavior.",
     )
     assign_ms_parser.add_argument(
         "--overwrite",
@@ -204,12 +213,14 @@ def main(argv: list[str] | None = None) -> int:
             args.output,
             args.clayff,
             topology_conflict=args.topology_conflict,
+            ms_version=args.ms_version,
             overwrite=args.overwrite,
         )
         print(result.path)
         print(f"mode={result.mode}")
         print(f"atoms={result.atom_count}")
         print(f"bonds={result.bond_count}")
+        print(f"xsd_version={result.xsd_version}")
         return 0
 
     if args.command == "audit-ms-off":

@@ -197,11 +197,23 @@ clayff-toolkit pipeline input.cif output.data
 ```bash
 clayff-toolkit assign-ms input.cif input_clayff.xsd
 clayff-toolkit assign-ms input.xsd input_clayff.xsd
+clayff-toolkit assign-ms input.xsd input_clayff_ms2020.xsd --ms-version 2020
 ```
 
 已有 XSD 的基元原子和 H-O 拓扑与赋予结果一致时，程序只更新
 `ForcefieldType` 和 `Charge`，保留原有 ID、周期映射、显示属性和其他未知元数据。
 拓扑不一致时，默认根据结构重建干净的 P1 XSD。
+
+使用 `--ms-version` 可以选择目标 Materials Studio 版本：
+
+```bash
+clayff-toolkit assign-ms input.cif output.xsd --ms-version 2020
+```
+
+当前支持 `auto`、`2020`、`2021`、`2022`、`2023` 和 `2024`。显式选择版本时，
+程序会同时写入对应的 XSD `Version` 和属性声明表，而不是只修改版本字符串。
+`auto` 是默认值：输入已有 XSD 时保留其文档版本；从 CIF、XYZ 等结构创建
+新 XSD 时保持原有兼容导出行为。
 
 输出文件包含 ClayFF 类型、电荷以及羟基和水分子的 H-O 键。要在 Forcite
 中计算，仍需在 Materials Studio 中安装或选择与这些类型匹配的私有
@@ -306,6 +318,7 @@ clayff-toolkit assign-ms <输入结构> <输出xsd> [选项]
 
 - `--clayff <路径>`：ClayFF 参数文件
 - `--topology-conflict rebuild|error`：XSD 拓扑冲突时重建或报错
+- `--ms-version auto|2020|2021|2022|2023|2024`：选择目标 Materials Studio 版本
 - `--overwrite`：允许覆盖已有输出文件
 
 默认不会覆盖已有文件。推荐输出为 `<输入名>_clayff.xsd`。
@@ -581,6 +594,9 @@ OFF 审计不会修改输入文件，也不会把所选 OFF 复制到仓库或�
 
 GUI 的独立 Materials Studio 页面可读取 `.xsd` 并生成新文件。程序默认不会覆盖
 已有输出，只有启用“允许覆盖已有输出文件”后才会覆盖。
+
+“目标 MS 版本”可选择自动模式或 Materials Studio 2020–2024。自动模式保留输入
+XSD 的文档版本；显式版本会按对应格式生成版本号和属性声明。
 
 首版仅支持包含全部显式原子的三维周期 P1 XSD。非 P1 对称结构应先在
 Materials Studio 中展开为 P1，再交给工具包赋型。

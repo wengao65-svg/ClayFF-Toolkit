@@ -174,12 +174,17 @@ def test_visualizer_materials_studio_workspace_exports_xsd(tmp_path: Path) -> No
     window._go_to_step(window.PAGE_INDEX["materials-studio"])
     window._ms_structure_input.setText(str(source))
     window._ms_xsd_output_input.setText(str(output))
+    window._ms_version.setCurrentIndex(window._ms_version.findData("2020"))
 
     window._run_material_studio_assignment()
     app.processEvents()
 
     assert output.exists()
     assert window._state.output_xsd_path == output
+    assert '<XSD Version="20.1" WrittenBy="ClayFF-Toolkit">' in output.read_text(
+        encoding="latin1"
+    )
+    assert "XSD 文档版本: 20.1" in window._ms_xsd_summary.toPlainText()
     assert "assigned.xsd" in window._ready_card.text()
     window.close()
 

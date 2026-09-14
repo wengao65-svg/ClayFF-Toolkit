@@ -22,6 +22,124 @@ from .params import ClayFFParameters, load_clayff
 
 
 TopologyConflictPolicy = Literal["rebuild", "error"]
+MaterialStudioVersion = Literal["auto", "2020", "2021", "2022", "2023", "2024"]
+PropertyDeclaration = tuple[str, str, str]
+
+
+@dataclass(frozen=True)
+class MaterialStudioXsdProfile:
+    material_studio_version: str
+    xsd_version: str
+    properties: tuple[PropertyDeclaration, ...]
+
+
+_LEGACY_PROPERTY_DECLARATIONS: tuple[PropertyDeclaration, ...] = (
+    ("AngleAxisType", "AngleBetweenPlanesBender", "Enumerated"),
+    ("AngleEnergy", "ClassicalEnergyHolder", "Double"),
+    ("BeadDocumentID", "MesoMoleculeSet", "String"),
+    ("BendBendEnergy", "ClassicalEnergyHolder", "Double"),
+    ("BendTorsionBendEnergy", "ClassicalEnergyHolder", "Double"),
+    ("BondEnergy", "ClassicalEnergyHolder", "Double"),
+    ("EFGAsymmetry", "Atom", "Double"),
+    ("EFGQuadrupolarCoupling", "Atom", "Double"),
+    ("ElectrostaticEnergy", "ClassicalEnergyHolder", "Double"),
+    ("FaceMillerIndex", "GrowthFace", "MillerIndex"),
+    ("FacetTransparency", "GrowthFace", "Float"),
+    ("FermiLevel", "ScalarFieldBase", "Double"),
+    ("Force", "Matter", "CoDirection"),
+    ("FrameFilter", "Trajectory", "String"),
+    ("HarmonicForceConstant", "HarmonicRestraint", "Double"),
+    ("HarmonicMinimum", "HarmonicRestraint", "Double"),
+    ("HydrogenBondEnergy", "ClassicalEnergyHolder", "Double"),
+    ("ImportOrder", "Bondable", "UnsignedInteger"),
+    ("InversionEnergy", "ClassicalEnergyHolder", "Double"),
+    ("IsBackboneAtom", "Atom", "Boolean"),
+    ("IsChiralCenter", "Atom", "Boolean"),
+    ("IsOutOfPlane", "Atom", "Boolean"),
+    ("IsRepeatArrowVisible", "ElectrodeWire", "Boolean"),
+    ("KineticEnergy", "ClassicalEnergyHolder", "Double"),
+    ("LineExtentPadding", "BestFitLineMonitor", "Double"),
+    ("LinkageGroupName", "Linkage", "String"),
+    ("ListIdentifier", "PropertyList", "String"),
+    ("NMRShielding", "Atom", "Double"),
+    ("NonBondEnergy", "ClassicalEnergyHolder", "Double"),
+    ("NormalMode", "Bondable", "Direction"),
+    ("NormalModeFrequency", "Bondable", "Double"),
+    ("NumScanSteps", "LinearScan", "UnsignedInteger"),
+    ("OrbitalCutoffRadius", "Bondable", "Double"),
+    ("PlaneExtentPadding", "BestFitPlaneMonitor", "Double"),
+    ("PotentialEnergy", "ClassicalEnergyHolder", "Double"),
+    ("QuantizationValue", "ScalarFieldBase", "Double"),
+    ("RelativeVelocity", "Matter", "Direction"),
+    ("RepeatArrowScale", "ElectrodeWire", "Float"),
+    ("RestraintEnergy", "ClassicalEnergyHolder", "Double"),
+    ("ScanEnd", "LinearScan", "Double"),
+    ("ScanStart", "LinearScan", "Double"),
+    ("SeparatedStretchStretchEnergy", "ClassicalEnergyHolder", "Double"),
+    ("ServerDipoleMoment", "MatterGroupProperties", "Direction"),
+    ("SimulationStep", "Trajectory", "Integer"),
+    ("SpinQuantizationDirection", "Atom", "Direction"),
+    ("Stiffness", "SymmetryMatterHessian", "Matrix6x6"),
+    ("StretchBendStretchEnergy", "ClassicalEnergyHolder", "Double"),
+    ("StretchStretchEnergy", "ClassicalEnergyHolder", "Double"),
+    ("StretchTorsionStretchEnergy", "ClassicalEnergyHolder", "Double"),
+    ("Temperature", "ClassicalEnergyHolder", "Double"),
+    ("ThreeBodyNonBondEnergy", "ClassicalEnergyHolder", "Double"),
+    ("TorsionBendBendEnergy", "ClassicalEnergyHolder", "Double"),
+    ("TorsionEnergy", "ClassicalEnergyHolder", "Double"),
+    ("TorsionStretchEnergy", "ClassicalEnergyHolder", "Double"),
+    ("TotalEnergy", "ClassicalEnergyHolder", "Double"),
+    ("Units", "ScalarFieldBase", "String"),
+    ("UreyBradleyEnergy", "ClassicalEnergyHolder", "Double"),
+    ("ValenceCrossTermEnergy", "ClassicalEnergyHolder", "Double"),
+    ("ValenceDiagonalEnergy", "ClassicalEnergyHolder", "Double"),
+    ("VanDerWaalsEnergy", "ClassicalEnergyHolder", "Double"),
+    ("_ServerAtomNames", "IndexProvider", "String"),
+    ("_Stress", "MatterSymmetrySystem", "Matrix"),
+    ("_TrajectoryStress", "MatterSymmetrySystem", "Matrix"),
+)
+
+_MS_2024_PUBCHEM_PROPERTY_DECLARATIONS: tuple[PropertyDeclaration, ...] = (
+    ("SD_10_PUBCHEM_5FBOND_5FDEF_5FSTEREO_5FCOUNT", "Molecule", "String"),
+    ("SD_11_PUBCHEM_5FBOND_5FUDEF_5FSTEREO_5FCOUNT", "Molecule", "String"),
+    ("SD_12_PUBCHEM_5FISOTOPIC_5FATOM_5FCOUNT", "Molecule", "String"),
+    ("SD_13_PUBCHEM_5FCOMPONENT_5FCOUNT", "Molecule", "String"),
+    ("SD_14_PUBCHEM_5FCACTVS_5FTAUTO_5FCOUNT", "Molecule", "String"),
+    ("SD_15_PUBCHEM_5FCONFORMER_5FID", "Molecule", "String"),
+    ("SD_16_PUBCHEM_5FMMFF94_5FENERGY", "Molecule", "String"),
+    ("SD_17_PUBCHEM_5FFEATURE_5FSELFOVERLAP", "Molecule", "String"),
+    ("SD_18_PUBCHEM_5FSHAPE_5FFINGERPRINT", "Molecule", "String"),
+    ("SD_19_PUBCHEM_5FSHAPE_5FMULTIPOLES", "Molecule", "String"),
+    ("SD_1_PUBCHEM_5FCOMPOUND_5FCID", "Molecule", "String"),
+    ("SD_20_PUBCHEM_5FSHAPE_5FSELFOVERLAP", "Molecule", "String"),
+    ("SD_21_PUBCHEM_5FSHAPE_5FVOLUME", "Molecule", "String"),
+    ("SD_22_PUBCHEM_5FCOORDINATE_5FTYPE", "Molecule", "String"),
+    ("SD_2_PUBCHEM_5FCONFORMER_5FRMSD", "Molecule", "String"),
+    ("SD_3_PUBCHEM_5FCONFORMER_5FDIVERSEORDER", "Molecule", "String"),
+    ("SD_4_PUBCHEM_5FMMFF94_5FPARTIAL_5FCHARGES", "Molecule", "String"),
+    ("SD_5_PUBCHEM_5FEFFECTIVE_5FROTOR_5FCOUNT", "Molecule", "String"),
+    ("SD_6_PUBCHEM_5FPHARMACOPHORE_5FFEATURES", "Molecule", "String"),
+    ("SD_7_PUBCHEM_5FHEAVY_5FATOM_5FCOUNT", "Molecule", "String"),
+    ("SD_8_PUBCHEM_5FATOM_5FDEF_5FSTEREO_5FCOUNT", "Molecule", "String"),
+    ("SD_9_PUBCHEM_5FATOM_5FUDEF_5FSTEREO_5FCOUNT", "Molecule", "String"),
+)
+
+_MS_2024_PROPERTY_DECLARATIONS = (
+    _LEGACY_PROPERTY_DECLARATIONS[:41]
+    + _MS_2024_PUBCHEM_PROPERTY_DECLARATIONS
+    + _LEGACY_PROPERTY_DECLARATIONS[41:]
+)
+
+MATERIAL_STUDIO_XSD_PROFILES: dict[str, MaterialStudioXsdProfile] = {
+    year: MaterialStudioXsdProfile(year, f"{year[-2:]}.1", _LEGACY_PROPERTY_DECLARATIONS)
+    for year in ("2020", "2021", "2022", "2023")
+}
+MATERIAL_STUDIO_XSD_PROFILES["2024"] = MaterialStudioXsdProfile(
+    "2024",
+    "24.1",
+    _MS_2024_PROPERTY_DECLARATIONS,
+)
+SUPPORTED_MATERIAL_STUDIO_VERSIONS = tuple(MATERIAL_STUDIO_XSD_PROFILES)
 
 
 @dataclass(frozen=True)
@@ -30,6 +148,8 @@ class MaterialStudioWriteResult:
     mode: Literal["patched", "rebuilt"]
     atom_count: int
     bond_count: int
+    target_version: MaterialStudioVersion = "auto"
+    xsd_version: str = "unknown"
 
 
 def _vector(value: str | None, name: str) -> np.ndarray:
@@ -237,6 +357,93 @@ def _set_attribute(tag: str, name: str, value: str) -> str:
     return tag[:marker] + insertion + tag[marker:]
 
 
+def _material_studio_profile(
+    version: MaterialStudioVersion,
+) -> MaterialStudioXsdProfile | None:
+    if version == "auto":
+        return None
+    try:
+        return MATERIAL_STUDIO_XSD_PROFILES[version]
+    except KeyError as exc:
+        choices = ", ".join(("auto", *SUPPORTED_MATERIAL_STUDIO_VERSIONS))
+        raise ValueError(
+            f"Unsupported Materials Studio version {version!r}; choose one of: {choices}."
+        ) from exc
+
+
+def _profile_from_xsd(path: Path) -> MaterialStudioXsdProfile:
+    tree = ET.parse(path)
+    root = tree.getroot()
+    atomistic_root = root.find("AtomisticTreeRoot")
+    if atomistic_root is None:
+        raise ValueError("Materials Studio XSD has no AtomisticTreeRoot.")
+    properties = tuple(
+        (node.get("Name", ""), node.get("DefinedOn", ""), node.get("Type", ""))
+        for node in atomistic_root.findall("Property")
+    )
+    if not properties:
+        raise ValueError("Materials Studio XSD has no root property declarations.")
+    return MaterialStudioXsdProfile(
+        material_studio_version="source",
+        xsd_version=root.get("Version") or "6.0",
+        properties=properties,
+    )
+
+
+def _property_declaration_tag(declaration: PropertyDeclaration) -> str:
+    name, defined_on, value_type = declaration
+    return f'<Property Name="{name}" DefinedOn="{defined_on}" Type="{value_type}"/>'
+
+
+def _apply_xsd_profile_text(path: Path, profile: MaterialStudioXsdProfile) -> None:
+    data = path.read_bytes()
+    encoding = _source_encoding(data)
+    text = data.decode(encoding)
+
+    root_match = re.search(r"<XSD\b[^>]*>", text)
+    if root_match is None:
+        raise ValueError("Materials Studio XSD has no root start tag.")
+    root_tag = _set_attribute(root_match.group(0), "Version", profile.xsd_version)
+    root_tag = _set_attribute(root_tag, "WrittenBy", "ClayFF-Toolkit")
+    text = text[: root_match.start()] + root_tag + text[root_match.end() :]
+
+    atomistic_match = re.search(r"<AtomisticTreeRoot\b[^>]*>", text)
+    if atomistic_match is None:
+        raise ValueError("Materials Studio XSD has no AtomisticTreeRoot start tag.")
+    atomistic_tag = _set_attribute(
+        atomistic_match.group(0),
+        "NumProperties",
+        str(len(profile.properties)),
+    )
+    text = text[: atomistic_match.start()] + atomistic_tag + text[atomistic_match.end() :]
+
+    atomistic_match = re.search(r"<AtomisticTreeRoot\b[^>]*>", text)
+    assert atomistic_match is not None
+    block_start = atomistic_match.end()
+    cursor = block_start
+    first_prefix: str | None = None
+    property_count = 0
+    while True:
+        property_match = re.match(r"(?P<prefix>\s*)<Property\b[^>]*/>", text[cursor:])
+        if property_match is None:
+            break
+        if first_prefix is None:
+            first_prefix = property_match.group("prefix")
+        cursor += property_match.end()
+        property_count += 1
+    if property_count == 0 or first_prefix is None:
+        raise ValueError("Materials Studio XSD has no root property declarations.")
+
+    newline = "\r\n" if "\r\n" in first_prefix else "\n"
+    indent = first_prefix.rsplit("\n", 1)[-1]
+    property_block = "".join(
+        f"{newline}{indent}{_property_declaration_tag(declaration)}"
+        for declaration in profile.properties
+    )
+    text = text[:block_start] + property_block + text[cursor:]
+    path.write_bytes(text.encode(encoding))
+
+
 def _patch_xsd_text(
     source_path: Path,
     output_path: Path,
@@ -381,8 +588,29 @@ def _validate_written_xsd(
     assigned: AssignedStructure,
     *,
     validate_generated_links: bool,
+    profile: MaterialStudioXsdProfile | None,
 ) -> None:
     tree, identity, atom_elements = _parse_xsd(path)
+    root = tree.getroot()
+    if profile is not None:
+        if root.get("Version") != profile.xsd_version:
+            raise ValueError(
+                f"Written XSD has version {root.get('Version')!r}; "
+                f"expected {profile.xsd_version!r}."
+            )
+        atomistic_root = root.find("AtomisticTreeRoot")
+        assert atomistic_root is not None
+        declarations = tuple(
+            (node.get("Name", ""), node.get("DefinedOn", ""), node.get("Type", ""))
+            for node in atomistic_root.findall("Property")
+        )
+        if declarations != profile.properties:
+            raise ValueError(
+                f"Written XSD property declarations do not match Materials Studio "
+                f"{profile.material_studio_version}."
+            )
+        if atomistic_root.get("NumProperties") != str(len(profile.properties)):
+            raise ValueError("Written XSD has an inconsistent NumProperties value.")
     if not _structure_matches_xsd(assigned, atom_elements):
         raise ValueError(f"Written Materials Studio XSD does not match assigned structure: {path}")
     for assigned_atom, atom_element in zip(assigned.atoms, atom_elements):
@@ -397,7 +625,6 @@ def _validate_written_xsd(
     if not validate_generated_links:
         return
 
-    root = tree.getroot()
     all_ids = [element.get("ID") for element in root.iter() if element.get("ID")]
     if len(all_ids) != len(set(all_ids)):
         raise ValueError(f"Written Materials Studio XSD contains duplicate object IDs: {path}")
@@ -424,12 +651,14 @@ def write_material_studio_xsd(
     *,
     source_xsd: str | Path | None = None,
     topology_conflict: TopologyConflictPolicy = "rebuild",
+    ms_version: MaterialStudioVersion = "auto",
     overwrite: bool = False,
 ) -> MaterialStudioWriteResult:
     """Write a ClayFF-assigned Materials Studio XSD document."""
 
     if topology_conflict not in {"rebuild", "error"}:
         raise ValueError(f"Unsupported topology conflict policy: {topology_conflict}")
+    profile = _material_studio_profile(ms_version)
     path = Path(output_path)
     if path.suffix.lower() != ".xsd":
         raise ValueError("Materials Studio output path must use the .xsd extension.")
@@ -449,6 +678,11 @@ def write_material_studio_xsd(
     mode: Literal["patched", "rebuilt"] = "rebuilt"
     try:
         source_path = Path(source_xsd) if source_xsd is not None else None
+        source_profile = (
+            _profile_from_xsd(source_path)
+            if source_path is not None and profile is None
+            else None
+        )
         if source_path is not None:
             _, identity, atom_elements = _parse_xsd(source_path)
             topology, valid = _existing_topology(identity, atom_elements)
@@ -468,11 +702,19 @@ def write_material_studio_xsd(
         if mode == "rebuilt":
             _rebuild_xsd(structure, assigned, temp_path)
 
+        effective_profile = profile
+        if mode == "rebuilt" and effective_profile is None:
+            effective_profile = source_profile
+        if effective_profile is not None:
+            _apply_xsd_profile_text(temp_path, effective_profile)
+
         _validate_written_xsd(
             temp_path,
             assigned,
             validate_generated_links=mode == "rebuilt",
+            profile=effective_profile,
         )
+        written_xsd_version = ET.parse(temp_path).getroot().get("Version") or "unknown"
         os.replace(temp_path, path)
     finally:
         temp_path.unlink(missing_ok=True)
@@ -482,6 +724,8 @@ def write_material_studio_xsd(
         mode=mode,
         atom_count=len(assigned.atoms),
         bond_count=len(assigned.bonds),
+        target_version=ms_version,
+        xsd_version=written_xsd_version,
     )
 
 
@@ -491,6 +735,7 @@ def assign_material_studio_file(
     clayff_path: str | Path | None = None,
     *,
     topology_conflict: TopologyConflictPolicy = "rebuild",
+    ms_version: MaterialStudioVersion = "auto",
     overwrite: bool = False,
 ) -> MaterialStudioWriteResult:
     """Assign ClayFF and export a Materials Studio XSD document."""
@@ -512,5 +757,6 @@ def assign_material_studio_file(
         output_xsd,
         source_xsd=source_xsd,
         topology_conflict=topology_conflict,
+        ms_version=ms_version,
         overwrite=overwrite,
     )

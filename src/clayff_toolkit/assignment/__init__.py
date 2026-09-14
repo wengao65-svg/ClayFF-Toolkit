@@ -11,7 +11,10 @@ from .cif import (
 )
 from .params import ClayFFParameters, load_clayff
 from .material_studio import (
+    MATERIAL_STUDIO_XSD_PROFILES,
+    SUPPORTED_MATERIAL_STUDIO_VERSIONS,
     MaterialStudioWriteResult,
+    MaterialStudioXsdProfile,
     assign_material_studio_file,
     load_material_studio_structure,
     write_material_studio_xsd,
@@ -48,11 +51,14 @@ __all__ = [
     "MineralProfile",
     "MineralProfileMatch",
     "MaterialStudioWriteResult",
+    "MaterialStudioXsdProfile",
     "MaterialStudioOffAuditIssue",
     "MaterialStudioOffAuditReport",
     "MaterialStudioOffDocument",
     "PROFILE_CATALOG",
     "PROFILE_INTERLAYER_TYPES",
+    "MATERIAL_STUDIO_XSD_PROFILES",
+    "SUPPORTED_MATERIAL_STUDIO_VERSIONS",
     "StructureSummary",
     "ase_atoms_from_structure",
     "assignment_markers",

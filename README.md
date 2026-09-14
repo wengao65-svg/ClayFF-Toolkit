@@ -97,6 +97,7 @@ Run:
 clayff-toolkit assign input.cif output.data
 clayff-toolkit assign-ms input.cif output_clayff.xsd
 clayff-toolkit assign-ms input.xsd output_clayff.xsd
+clayff-toolkit assign-ms input.xsd output_ms2020.xsd --ms-version 2020
 clayff-toolkit audit-ms-off clayff.off --clayff clayff.frc
 clayff-toolkit workflow input.cif substituted.cif output.data --preset octa-only --interlayer Ca
 clayff-toolkit charge output.data
