@@ -90,6 +90,8 @@ def test_visualizer_window_loads_structure_and_updates_local_environment() -> No
         data_path=FIXTURES / "assignment_reference" / "MMT_0W_rank3_d9.545.data",
     )
 
+    assert not window.windowIcon().isNull()
+    assert not app.windowIcon().isNull()
     window._load_structure(FIXTURES / "substitution_input" / "cammt_c2m_32.cif")
     app.processEvents()
 

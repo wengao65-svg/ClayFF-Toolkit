@@ -47,6 +47,7 @@ def _qt_imports():
         Qt = QtCore.Qt
         QFont = QtGui.QFont
         QFontDatabase = QtGui.QFontDatabase
+        QIcon = QtGui.QIcon
         QPixmap = QtGui.QPixmap
         QApplication = QtWidgets.QApplication
         QComboBox = QtWidgets.QComboBox
@@ -83,6 +84,7 @@ def _qt_imports():
         "QFrame": QFrame,
         "QFont": QFont,
         "QFontDatabase": QFontDatabase,
+        "QIcon": QIcon,
         "QGridLayout": QGridLayout,
         "QHBoxLayout": QHBoxLayout,
         "QHeaderView": QHeaderView,
@@ -102,6 +104,9 @@ def _qt_imports():
         "QWidget": QWidget,
         "Qt": Qt,
     }
+
+
+APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "icons" / "clayff-toolkit.png"
 
 
 STYLESHEET = """
@@ -370,6 +375,7 @@ class ClayFFWizardWindow:
         self.QGridLayout = qt["QGridLayout"]
         self.QHBoxLayout = qt["QHBoxLayout"]
         self.QHeaderView = qt["QHeaderView"]
+        self.QIcon = qt["QIcon"]
         self.QLabel = qt["QLabel"]
         self.QLineEdit = qt["QLineEdit"]
         self.QMainWindow = qt["QMainWindow"]
@@ -388,6 +394,11 @@ class ClayFFWizardWindow:
 
         self._window = self.QMainWindow()
         self._window.setWindowTitle("ClayFF Toolkit Workbench")
+        icon = self.QIcon(str(APP_ICON_PATH))
+        self._window.setWindowIcon(icon)
+        app = self.QApplication.instance()
+        if app is not None:
+            app.setWindowIcon(icon)
         self._window.resize(1540, 980)
         self._window.setStyleSheet(STYLESHEET)
 

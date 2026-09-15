@@ -8,6 +8,10 @@ SPEC_PATH = REPO_ROOT / "packaging" / "windows" / "ClayFF-Toolkit.spec"
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-windows-gui.ps1"
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-windows.yml"
+ICON_PATH = REPO_ROOT / "packaging" / "windows" / "ClayFF-Toolkit.ico"
+RUNTIME_ICON_PATH = (
+    REPO_ROOT / "src" / "clayff_toolkit" / "resources" / "icons" / "clayff-toolkit.png"
+)
 
 
 def test_pyinstaller_spec_targets_gui_launcher_and_onefile_executable() -> None:
@@ -20,6 +24,10 @@ def test_pyinstaller_spec_targets_gui_launcher_and_onefile_executable() -> None:
     assert "a.binaries" in spec
     assert "a.datas" in spec
     assert "clayff_toolkit/resources" in spec
+    assert "ClayFF-Toolkit.ico" in spec
+    assert "icon=str(icon_path)" in spec
+    assert "clayff-toolkit.png" in spec
+    assert "clayff_toolkit/resources/icons" in spec
     assert '"ovito"' in spec
     assert '"PySide6"' in spec
     assert "collect_dynamic_libs" in spec
@@ -33,6 +41,11 @@ def test_pyinstaller_spec_targets_gui_launcher_and_onefile_executable() -> None:
     assert '"PySide6.QtWidgets"' in spec
     assert 'excludes=["ase.test", "pytest", "_pytest"]' in spec
     assert (REPO_ROOT / "src" / "clayff_toolkit" / "assignment" / "material_studio_off.py").exists()
+
+
+def test_windows_and_runtime_icon_assets_exist() -> None:
+    assert ICON_PATH.read_bytes().startswith(b"\x00\x00\x01\x00")
+    assert RUNTIME_ICON_PATH.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
 
 
 def test_windows_gui_build_script_builds_single_executable() -> None:

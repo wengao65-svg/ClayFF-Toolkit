@@ -33,7 +33,7 @@ package-dir = {"" = "src"}
 include-package-data = true
 
 [tool.setuptools.package-data]
-clayff_toolkit = ["resources/*.txt"]
+clayff_toolkit = ["resources/*.txt", "resources/icons/*.png"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

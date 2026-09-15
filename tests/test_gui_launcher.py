@@ -17,6 +17,7 @@ def test_gui_launcher_smoke_report_success(monkeypatch, tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert "resource.clayff=ok" in lines
+    assert "resource.app_icon=ok" in lines
     assert "gui_dependency.PySide6=ok" in lines
     assert "gui_dependency.ovito=ok" in lines
     assert "feature.ms_xsd_profiles=ok" in lines
@@ -43,6 +44,22 @@ def test_gui_launcher_smoke_report_reports_missing_gui_dependency(monkeypatch, t
     assert "gui_dependency.PySide6=ok" in lines
     assert "gui_dependency.ovito=missing" in lines
     assert "missing_required=ovito" in lines
+
+
+def test_gui_launcher_smoke_report_detects_missing_app_icon(monkeypatch, tmp_path: Path) -> None:
+    clayff_path = tmp_path / "clayff.txt"
+    clayff_path.write_text("# test resource\n", encoding="utf-8")
+    monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
+    monkeypatch.setattr(gui_launcher, "APP_ICON_PATH", tmp_path / "missing-icon.png")
+    monkeypatch.setattr(gui_launcher, "_module_import_error", lambda module_name: None)
+    monkeypatch.setattr(gui_launcher, "_material_studio_profile_error", lambda: None)
+    monkeypatch.setattr(gui_launcher, "_ovito_pipeline_error", lambda: None)
+
+    exit_code, lines = gui_launcher.build_smoke_report()
+
+    assert exit_code == 1
+    assert "resource.app_icon=missing" in lines
+    assert "missing_required=app_icon_resource" in lines
 
 
 def test_gui_launcher_smoke_report_treats_import_failure_as_missing(monkeypatch, tmp_path: Path) -> None:

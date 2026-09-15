@@ -11,7 +11,7 @@ import traceback
 from pathlib import Path
 
 from clayff_toolkit.assignment.service import default_clayff_path
-from clayff_toolkit.visualization.app import launch_visualizer
+from clayff_toolkit.visualization.app import APP_ICON_PATH, launch_visualizer
 
 
 GUI_DEPENDENCY_IMPORTS = {
@@ -129,6 +129,12 @@ def build_smoke_report() -> tuple[int, list[str]]:
     lines.append(f"resource.clayff_path={clayff_path}")
     if not clayff_path.exists():
         missing.append("clayff_resource")
+
+    icon_status = "ok" if APP_ICON_PATH.exists() else "missing"
+    lines.append(f"resource.app_icon={icon_status}")
+    lines.append(f"resource.app_icon_path={APP_ICON_PATH}")
+    if not APP_ICON_PATH.exists():
+        missing.append("app_icon_resource")
 
     for dependency_name, import_target in GUI_DEPENDENCY_IMPORTS.items():
         import_error = _module_import_error(import_target)

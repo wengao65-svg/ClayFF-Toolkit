@@ -9,12 +9,17 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, co
 block_cipher = None
 repo_root = Path(SPECPATH).parents[1]
 src_root = repo_root / "src"
+icon_path = repo_root / "packaging" / "windows" / "ClayFF-Toolkit.ico"
 
 datas = [
     (
         str(src_root / "clayff_toolkit" / "resources" / "clayff.txt"),
         "clayff_toolkit/resources",
-    )
+    ),
+    (
+        str(src_root / "clayff_toolkit" / "resources" / "icons" / "clayff-toolkit.png"),
+        "clayff_toolkit/resources/icons",
+    ),
 ]
 binaries = []
 hiddenimports = collect_submodules("clayff_toolkit")
@@ -100,4 +105,5 @@ exe = EXE(
     upx_exclude=[],
     console=False,
     disable_windowed_traceback=False,
+    icon=str(icon_path),
 )
