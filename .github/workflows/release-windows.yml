@@ -22,9 +22,11 @@ jobs:
       - name: Build Windows GUI executable
         run: powershell -ExecutionPolicy Bypass -File scripts\build-windows-gui.ps1 -Python python
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
         with:
           name: ClayFF-Toolkit-Windows-x64
           path: dist/ClayFF-Toolkit.exe
+          retention-days: 7
       - name: Attach executable to GitHub release
         if: github.event_name == 'release'
         env:

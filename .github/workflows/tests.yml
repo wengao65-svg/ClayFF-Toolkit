@@ -3,6 +3,7 @@ name: tests
 on:
   pull_request:
   push:
+  workflow_dispatch:
 
 jobs:
   linux-core:
@@ -55,6 +56,7 @@ jobs:
           & (Join-Path $binDir "clayff-toolkit.cmd") doctor
 
   windows-gui-artifact:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: windows-latest
     defaults:
       run:
@@ -77,3 +79,4 @@ jobs:
         with:
           name: ClayFF-Toolkit-Windows-x64
           path: dist/ClayFF-Toolkit.exe
+          retention-days: 3

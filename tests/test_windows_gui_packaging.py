@@ -25,7 +25,13 @@ def test_pyinstaller_spec_targets_gui_launcher_and_onefile_executable() -> None:
     assert "collect_dynamic_libs" in spec
     assert "ovito/plugins" in spec
     assert "shiboken6" in spec
-    assert "collect_submodules(package_name)" in spec
+    assert 'collect_submodules("ovito")' in spec
+    assert 'collect_submodules("ase")' not in spec
+    assert 'collect_submodules("PySide6")' not in spec
+    assert 'collect_data_files("PySide6")' not in spec
+    assert '"ase.io.xsd"' in spec
+    assert '"PySide6.QtWidgets"' in spec
+    assert 'excludes=["ase.test", "pytest", "_pytest"]' in spec
     assert (REPO_ROOT / "src" / "clayff_toolkit" / "assignment" / "material_studio_off.py").exists()
 
 
@@ -64,6 +70,9 @@ def test_ci_builds_and_uploads_windows_gui_executable() -> None:
     assert "--smoke-test" in workflow
     assert "tests/test_material_studio_xsd.py" in workflow
     assert "tests/test_material_studio_off.py" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "github.ref == 'refs/heads/main'" in workflow
+    assert "retention-days: 3" in workflow
 
 
 def test_release_workflow_builds_and_attaches_windows_executable() -> None:
@@ -76,6 +85,8 @@ def test_release_workflow_builds_and_attaches_windows_executable() -> None:
     assert "actions/upload-artifact@v4" in workflow
     assert "gh release upload" in workflow
     assert "dist\\ClayFF-Toolkit.exe" in workflow
+    assert "if: github.event_name == 'workflow_dispatch'" in workflow
+    assert "retention-days: 7" in workflow
 
 
 def test_windows_bundle_readme_guides_gui_users() -> None:

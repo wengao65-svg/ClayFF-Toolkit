@@ -19,9 +19,32 @@ datas = [
 binaries = []
 hiddenimports = collect_submodules("clayff_toolkit")
 
+# ASE resolves file readers and writers by module name at runtime. Include only
+# the formats exposed by ClayFF-Toolkit instead of the complete ASE test suite.
+hiddenimports += [
+    "ase.io.cif",
+    "ase.io.extxyz",
+    "ase.io.res",
+    "ase.io.vasp",
+    "ase.io.xsd",
+    "ase.io.xyz",
+]
+
+# OVITO discovers its extension modules dynamically. Keep those modules and
+# plugin resources, while limiting Qt to the bindings used by ovito.qt_compat.
+hiddenimports += collect_submodules("ovito")
+hiddenimports += [
+    "PySide6.QtCore",
+    "PySide6.QtGui",
+    "PySide6.QtNetwork",
+    "PySide6.QtOpenGL",
+    "PySide6.QtOpenGLWidgets",
+    "PySide6.QtWidgets",
+    "PySide6.QtXml",
+]
+datas += collect_data_files("ovito")
+
 for package_name in ("ase", "ovito", "PySide6"):
-    datas += collect_data_files(package_name)
-    hiddenimports += collect_submodules(package_name)
     try:
         datas += copy_metadata(package_name)
     except Exception:
@@ -53,7 +76,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=["ase.test", "pytest", "_pytest"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

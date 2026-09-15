@@ -10,6 +10,8 @@ def test_gui_launcher_smoke_report_success(monkeypatch, tmp_path: Path) -> None:
     clayff_path.write_text("# test resource\n", encoding="utf-8")
     monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
     monkeypatch.setattr(gui_launcher, "_module_import_error", lambda module_name: None)
+    monkeypatch.setattr(gui_launcher, "_material_studio_profile_error", lambda: None)
+    monkeypatch.setattr(gui_launcher, "_ovito_pipeline_error", lambda: None)
 
     exit_code, lines = gui_launcher.build_smoke_report()
 
@@ -17,6 +19,8 @@ def test_gui_launcher_smoke_report_success(monkeypatch, tmp_path: Path) -> None:
     assert "resource.clayff=ok" in lines
     assert "gui_dependency.PySide6=ok" in lines
     assert "gui_dependency.ovito=ok" in lines
+    assert "feature.ms_xsd_profiles=ok" in lines
+    assert "feature.ovito_pipeline=ok" in lines
     assert "status=ok" in lines
 
 
@@ -29,6 +33,8 @@ def test_gui_launcher_smoke_report_reports_missing_gui_dependency(monkeypatch, t
         "_module_import_error",
         lambda module_name: None if module_name == "ovito.qt_compat" else "ImportError: missing",
     )
+    monkeypatch.setattr(gui_launcher, "_material_studio_profile_error", lambda: None)
+    monkeypatch.setattr(gui_launcher, "_ovito_pipeline_error", lambda: None)
 
     exit_code, lines = gui_launcher.build_smoke_report()
 
@@ -43,6 +49,8 @@ def test_gui_launcher_smoke_report_treats_import_failure_as_missing(monkeypatch,
     clayff_path = tmp_path / "clayff.txt"
     clayff_path.write_text("# test resource\n", encoding="utf-8")
     monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
+    monkeypatch.setattr(gui_launcher, "_material_studio_profile_error", lambda: None)
+    monkeypatch.setattr(gui_launcher, "_ovito_pipeline_error", lambda: None)
 
     def fake_import_module(module_name: str):
         if module_name == "ovito":
@@ -63,6 +71,8 @@ def test_gui_launcher_smoke_test_command_prints_report(monkeypatch, tmp_path: Pa
     clayff_path.write_text("# test resource\n", encoding="utf-8")
     monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
     monkeypatch.setattr(gui_launcher, "_module_import_error", lambda module_name: None)
+    monkeypatch.setattr(gui_launcher, "_material_studio_profile_error", lambda: None)
+    monkeypatch.setattr(gui_launcher, "_ovito_pipeline_error", lambda: None)
 
     exit_code = gui_launcher.main(["--smoke-test"])
     captured = capsys.readouterr()
@@ -78,12 +88,30 @@ def test_gui_launcher_smoke_test_writes_report_file(monkeypatch, tmp_path: Path)
     clayff_path.write_text("# test resource\n", encoding="utf-8")
     monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
     monkeypatch.setattr(gui_launcher, "_module_import_error", lambda module_name: None)
+    monkeypatch.setattr(gui_launcher, "_material_studio_profile_error", lambda: None)
+    monkeypatch.setattr(gui_launcher, "_ovito_pipeline_error", lambda: None)
     monkeypatch.setenv("CLAYFF_TOOLKIT_SMOKE_REPORT", str(report_path))
 
     exit_code = gui_launcher.main(["--smoke-test"])
 
     assert exit_code == 0
     assert "status=ok" in report_path.read_text(encoding="utf-8")
+
+
+def test_gui_launcher_smoke_report_detects_feature_failure(monkeypatch, tmp_path: Path) -> None:
+    clayff_path = tmp_path / "clayff.txt"
+    clayff_path.write_text("# test resource\n", encoding="utf-8")
+    monkeypatch.setattr(gui_launcher, "default_clayff_path", lambda: clayff_path)
+    monkeypatch.setattr(gui_launcher, "_module_import_error", lambda module_name: None)
+    monkeypatch.setattr(gui_launcher, "_material_studio_profile_error", lambda: "bad profiles")
+    monkeypatch.setattr(gui_launcher, "_ovito_pipeline_error", lambda: None)
+
+    exit_code, lines = gui_launcher.build_smoke_report()
+
+    assert exit_code == 1
+    assert "feature.ms_xsd_profiles=failed" in lines
+    assert "feature_error.ms_xsd_profiles=bad profiles" in lines
+    assert "missing_required=ms_xsd_profiles" in lines
 
 
 def test_gui_launcher_default_launches_visualizer(monkeypatch) -> None:

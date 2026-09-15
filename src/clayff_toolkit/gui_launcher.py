@@ -32,6 +32,47 @@ def _module_available(module_name: str) -> bool:
     return _module_import_error(module_name) is None
 
 
+def _material_studio_profile_error() -> str | None:
+    try:
+        from clayff_toolkit.assignment.material_studio import MATERIAL_STUDIO_XSD_PROFILES
+
+        expected = {
+            "2020": ("20.1", 63),
+            "2021": ("21.1", 63),
+            "2022": ("22.1", 63),
+            "2023": ("23.1", 63),
+            "2024": ("24.1", 85),
+        }
+        actual = {
+            version: (profile.xsd_version, len(profile.properties))
+            for version, profile in MATERIAL_STUDIO_XSD_PROFILES.items()
+        }
+        if actual != expected:
+            return f"Unexpected Materials Studio XSD profiles: {actual}"
+    except Exception as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return None
+
+
+def _ovito_pipeline_error() -> str | None:
+    try:
+        from clayff_toolkit.assignment.cif import AtomSite, Cell, CifStructure
+        from clayff_toolkit.visualization.ovito_preview import _build_structure_pipeline
+
+        structure = CifStructure(
+            title="package-smoke-test",
+            path=Path("package-smoke-test.cif"),
+            cell=Cell(a=5.0, b=5.0, c=5.0, alpha=90.0, beta=90.0, gamma=90.0),
+            atoms=(AtomSite(index=1, label="O1", element="O", frac=(0.0, 0.0, 0.0)),),
+        )
+        pipeline, cell_vis = _build_structure_pipeline(structure)
+        if pipeline is None or cell_vis is None:
+            return "OVITO pipeline creation returned an incomplete scene."
+    except Exception as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return None
+
+
 def default_log_dir() -> Path:
     env_log_dir = os.environ.get("CLAYFF_TOOLKIT_LOG_DIR")
     if env_log_dir:
@@ -97,6 +138,18 @@ def build_smoke_report() -> tuple[int, list[str]]:
             lines.append(f"gui_dependency_error.{dependency_name}={import_error}")
         if status != "ok":
             missing.append(dependency_name)
+
+    feature_checks = {
+        "ms_xsd_profiles": _material_studio_profile_error,
+        "ovito_pipeline": _ovito_pipeline_error,
+    }
+    for feature_name, check in feature_checks.items():
+        error = check()
+        status = "ok" if error is None else "failed"
+        lines.append(f"feature.{feature_name}={status}")
+        if error:
+            lines.append(f"feature_error.{feature_name}={error}")
+            missing.append(feature_name)
 
     if missing:
         lines.append(f"missing_required={','.join(missing)}")
