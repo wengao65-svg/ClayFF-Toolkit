@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use ClayFF-Toolkit, please cite the specific GitHub release and the original ClayFF publication."
+title: "ClayFF-Toolkit"
+type: software
+version: 0.2.0
+authors:
+  - name: "wengao65-svg"
+license: Apache-2.0
+repository-code: "https://github.com/wengao65-svg/ClayFF-Toolkit"
+url: "https://github.com/wengao65-svg/ClayFF-Toolkit"
+keywords:
+  - ClayFF
+  - clay minerals
+  - LAMMPS
+  - molecular simulation
+references:
+  - type: article
+    title: "Molecular Models of Hydroxide, Oxyhydroxide, and Clay Phases and the Development of a General Force Field"
+    authors:
+      - family-names: Cygan
+        given-names: Randall T.
+      - family-names: Liang
+        given-names: Jian-Jie
+      - family-names: Kalinichev
+        given-names: Andrey G.
+    journal: "The Journal of Physical Chemistry B"
+    year: 2004
+    volume: 108
+    issue: 4
+    start: 1255
+    end: 1266
+    doi: "10.1021/jp0363287"

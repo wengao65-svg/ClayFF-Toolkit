@@ -36,8 +36,10 @@ function Set-IsolatedPythonBuildPath {
         (Split-Path -Parent $pythonInfo.executable),
         $pythonInfo.prefix,
         (Join-Path $pythonInfo.prefix "Scripts"),
+        (Join-Path $pythonInfo.prefix "Library\bin"),
         $pythonInfo.base_prefix,
         (Join-Path $pythonInfo.base_prefix "Scripts"),
+        (Join-Path $pythonInfo.base_prefix "Library\bin"),
         (Join-Path $env:SystemRoot "System32"),
         $env:SystemRoot,
         (Join-Path $env:SystemRoot "System32\Wbem"),
@@ -65,28 +67,39 @@ $scriptDir = Split-Path -Parent $PSCommandPath
 $repoRoot = Split-Path -Parent $scriptDir
 $specPath = Join-Path $repoRoot "packaging\windows\ClayFF-Toolkit.spec"
 $bundleReadmePath = Join-Path $repoRoot "packaging\windows\README.txt"
+$buildConstraintsPath = Join-Path $repoRoot "packaging\windows\build-constraints.txt"
+$licenseCollectorPath = Join-Path $repoRoot "scripts\collect_third_party_licenses.py"
 $distPath = Join-Path $repoRoot $DistDir
 $workPath = Join-Path $repoRoot $WorkDir
 $exePath = Join-Path $distPath "ClayFF-Toolkit.exe"
+$bundleDir = Join-Path $distPath "ClayFF-Toolkit-Windows-x64"
+$archivePath = Join-Path $distPath "ClayFF-Toolkit-Windows-x64.zip"
 
 if (-not (Test-Path $specPath)) {
     throw "PyInstaller spec not found: $specPath"
 }
 Assert-PathExists -Path $bundleReadmePath -Description "Windows bundle README"
+Assert-PathExists -Path $buildConstraintsPath -Description "Windows build constraints"
+Assert-PathExists -Path $licenseCollectorPath -Description "third-party license collector"
+Assert-PathExists -Path (Join-Path $repoRoot "LICENSE") -Description "project license"
+Assert-PathExists -Path (Join-Path $repoRoot "NOTICE") -Description "project notice"
+Assert-PathExists -Path (Join-Path $repoRoot "THIRD_PARTY_NOTICES.md") -Description "third-party notice"
 
 if (-not $SkipDependencyInstall) {
     & $Python -m pip install --upgrade pip
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    & $Python -m pip install -e "$repoRoot[gui]" pyinstaller
+    & $Python -m pip install -c $buildConstraintsPath -e "$repoRoot[gui]" pyinstaller
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
 Set-IsolatedPythonBuildPath
 Assert-GuiDependenciesImport
 
-$legacyBundleDir = Join-Path $distPath "ClayFF-Toolkit"
-if (Test-Path $legacyBundleDir) {
-    Remove-Item $legacyBundleDir -Recurse -Force
+if (Test-Path $bundleDir) {
+    Remove-Item $bundleDir -Recurse -Force
+}
+if (Test-Path $archivePath) {
+    Remove-Item $archivePath -Force
 }
 
 & $Python -m PyInstaller --noconfirm --clean --distpath $distPath --workpath $workPath $specPath
@@ -119,4 +132,36 @@ if (Test-Path $smokeReportPath) {
 }
 if ($smokeProcess.ExitCode -ne 0) { exit $smokeProcess.ExitCode }
 
+New-Item -ItemType Directory -Force -Path $bundleDir | Out-Null
+Copy-Item -Path $exePath -Destination (Join-Path $bundleDir "ClayFF-Toolkit.exe") -Force
+Copy-Item -Path $bundleReadmePath -Destination (Join-Path $bundleDir "README.txt") -Force
+Copy-Item -Path $buildConstraintsPath -Destination (Join-Path $bundleDir "BUILD-CONSTRAINTS.txt") -Force
+foreach ($name in @("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "CITATION.cff")) {
+    Copy-Item -Path (Join-Path $repoRoot $name) -Destination (Join-Path $bundleDir $name) -Force
+}
+
+& $Python $licenseCollectorPath --output-dir $bundleDir --repo-root $repoRoot
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+& $Python -m PyInstaller.utils.cliutils.archive_viewer -l $exePath |
+    Out-File -Encoding utf8 (Join-Path $bundleDir "PYINSTALLER-CONTENTS.txt")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+foreach ($requiredName in @(
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md",
+    "THIRD_PARTY_LICENSES.md",
+    "DEPENDENCIES.txt",
+    "PYINSTALLER-CONTENTS.txt"
+)) {
+    Assert-PathExists -Path (Join-Path $bundleDir $requiredName) -Description "Windows bundle file $requiredName"
+}
+Assert-PathExists -Path (Join-Path $bundleDir "licenses\PySide6-Qt\LGPL-3.0-only.txt") -Description "LGPL-3.0 license"
+Assert-PathExists -Path (Join-Path $bundleDir "licenses\PySide6-Qt\GPL-3.0-only.txt") -Description "GPL-3.0 license incorporated by LGPL-3.0"
+
+Compress-Archive -Path $bundleDir -DestinationPath $archivePath -CompressionLevel Optimal
+Assert-PathExists -Path $archivePath -Description "licensed Windows distribution archive"
+
 Write-Host "Created Windows GUI executable: $exePath"
+Write-Host "Created licensed Windows distribution: $archivePath"

@@ -17,6 +17,10 @@ datas = [
         "clayff_toolkit/resources",
     ),
     (
+        str(src_root / "clayff_toolkit" / "resources" / "README.md"),
+        "clayff_toolkit/resources",
+    ),
+    (
         str(src_root / "clayff_toolkit" / "resources" / "icons" / "clayff-toolkit.png"),
         "clayff_toolkit/resources/icons",
     ),

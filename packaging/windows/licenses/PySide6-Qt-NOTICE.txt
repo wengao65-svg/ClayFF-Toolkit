@@ -1,0 +1,27 @@
+PySide6, Shiboken6, and Qt notice
+================================
+
+ClayFF-Toolkit uses PySide6 and Shiboken6 and redistributes the subset of Qt
+libraries selected by its PyInstaller build. These components are used under
+the GNU Lesser General Public License, version 3. The complete LGPL-3.0 and
+incorporated GPL-3.0 texts are provided beside this notice.
+
+PySide6 and Shiboken6 source:
+  https://code.qt.io/cgit/pyside/pyside-setup.git/
+
+Qt source and official source archives:
+  https://code.qt.io/cgit/qt/
+  https://download.qt.io/official_releases/qt/
+
+The exact PySide6, Shiboken6, and Qt version used for a binary release is
+recorded in DEPENDENCIES.txt. Corresponding source can be obtained by checking
+out that version's tag or downloading the matching official source archive.
+
+ClayFF-Toolkit's complete application source and build scripts are available
+from:
+  https://github.com/wengao65-svg/ClayFF-Toolkit
+
+Recipients may modify the LGPL-covered libraries and may reverse engineer the
+combined work when necessary to debug such modifications, as permitted by the
+LGPL. No warranty is provided. A build must not redistribute a GPL-only Qt
+module under the project's Apache-2.0 terms.

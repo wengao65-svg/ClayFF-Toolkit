@@ -1,15 +1,29 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ClayFF-Toolkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Unified toolkit for clay substitution, ClayFF assignment, validation, and LAMMPS export."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-  { name = "OpenAI Codex" }
+  { name = "wengao65-svg" }
+]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+keywords = ["ClayFF", "clay minerals", "LAMMPS", "molecular simulation"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Chemistry",
 ]
 dependencies = [
   "numpy>=1.24",
@@ -28,12 +42,17 @@ clayff-toolkit = "clayff_toolkit.cli:main"
 [project.gui-scripts]
 clayff-toolkit-gui = "clayff_toolkit.gui_launcher:main"
 
+[project.urls]
+Homepage = "https://github.com/wengao65-svg/ClayFF-Toolkit"
+Repository = "https://github.com/wengao65-svg/ClayFF-Toolkit"
+Issues = "https://github.com/wengao65-svg/ClayFF-Toolkit/issues"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 include-package-data = true
 
 [tool.setuptools.package-data]
-clayff_toolkit = ["resources/*.txt", "resources/icons/*.png"]
+clayff_toolkit = ["resources/*.txt", "resources/*.md", "resources/icons/*.png"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

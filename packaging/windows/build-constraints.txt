@@ -1,0 +1,7 @@
+# Critical versions audited for the ClayFF-Toolkit 0.2.0 Windows release.
+# The generated DEPENDENCIES.txt records the complete resolved environment.
+numpy==2.2.6
+ase==3.29.0
+ovito==3.16.0
+PySide6==6.10.3
+PyInstaller==6.22.3

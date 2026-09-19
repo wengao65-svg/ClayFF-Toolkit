@@ -1,0 +1,11 @@
+ClayFF-Toolkit
+Copyright 2026 wengao65-svg
+
+This product includes ClayFF parameter data copied from the LAMMPS project.
+LAMMPS states that the force-field files it distributes in
+tools/msi2lmp/frc_files are openly available and in the public domain.
+The parameter data is not covered by the ClayFF-Toolkit Apache-2.0 license.
+
+Third-party software included in binary distributions remains under its
+respective license. See THIRD_PARTY_NOTICES.md and the licenses directory in
+the binary distribution.

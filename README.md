@@ -1,5 +1,7 @@
 # ClayFF-Toolkit
 
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 Unified toolkit for clay isomorphic substitution, ClayFF assignment, charge
 validation, LAMMPS `.data` export, and Materials Studio `.xsd` export.
 
@@ -37,8 +39,9 @@ validation, LAMMPS `.data` export, and Materials Studio `.xsd` export.
 
 ## Install And Run
 
-For Windows GUI users, download `ClayFF-Toolkit.exe` from the release or CI
-artifact and double-click it:
+For Windows GUI users, download and extract
+`ClayFF-Toolkit-Windows-x64.zip` from the release or CI artifact, then
+double-click the executable:
 
 ```text
 ClayFF-Toolkit.exe
@@ -121,6 +124,35 @@ sudo fc-cache -fv
 
 This repository consolidates legacy code from separate experimental directories
 into a standard Python package layout under `src/`.
+
+## Citation
+
+If this toolkit contributes to published work, cite the specific GitHub
+release URL and the original ClayFF publication:
+
+> R. T. Cygan, J.-J. Liang, and A. G. Kalinichev, “Molecular Models of
+> Hydroxide, Oxyhydroxide, and Clay Phases and the Development of a General
+> Force Field,” *J. Phys. Chem. B* **108** (2004), 1255–1266.
+> https://doi.org/10.1021/jp0363287
+
+Machine-readable citation metadata is provided in `CITATION.cff`.
+
+## License and third-party material
+
+ClayFF-Toolkit source code is licensed under the Apache License 2.0. The
+bundled `clayff.txt` parameter data is a public-domain file copied from the
+LAMMPS repository and is not relicensed under Apache-2.0. See `NOTICE` and
+`THIRD_PARTY_NOTICES.md` for provenance and dependency licenses.
+
+Materials Studio is proprietary software. Private OFF and other licensed
+force-field files are not distributed by this project. ClayFF-Toolkit is not
+affiliated with or endorsed by BIOVIA, Dassault Systèmes, LAMMPS, OVITO, or
+the authors of ClayFF.
+
+## Contributing
+
+Contributions are welcome under Apache-2.0 and the Developer Certificate of
+Origin 1.1. See `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`.
 
 ## Documentation
 
